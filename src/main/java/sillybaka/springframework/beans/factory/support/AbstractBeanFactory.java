@@ -1,7 +1,7 @@
-package sillybaka.springframework.beans.factory;
+package sillybaka.springframework.beans.factory.support;
 
-import sillybaka.springframework.beans.definition.BeanDefinition;
-import sillybaka.springframework.beans.registry.impl.DefaultSingletonBeanRegistry;
+import sillybaka.springframework.beans.factory.BeanFactory;
+import sillybaka.springframework.beans.factory.config.BeanDefinition;
 
 /**
  * Date: 2022/10/11

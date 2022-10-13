@@ -1,12 +1,10 @@
-package sillybaka.springframework.beans.registry.impl;
+package sillybaka.springframework.beans.factory.support;
 
 import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
-import sillybaka.springframework.beans.registry.SingletonBeanRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Date: 2022/10/11

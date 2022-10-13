@@ -2,8 +2,9 @@ package sillybaka.springframework.beans.factory;
 
 import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
-import sillybaka.springframework.beans.definition.BeanDefinition;
-import sillybaka.springframework.beans.registry.BeanDefinitionRegistry;
+import sillybaka.springframework.beans.factory.config.BeanDefinition;
+import sillybaka.springframework.beans.factory.config.BeanDefinitionRegistry;
+import sillybaka.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -48,27 +49,27 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
         BEAN_DEFINITION_REGISTRY.put(beanName,beanDefinition);
     }
 
-    @Override
-    public <T> T doCreate(String beanName, BeanDefinition<T> beanDefinition) {
-        String name = beanDefinition.getName();
-        if(!name.equals(beanName)){
-            log.error("BeanName和BeanDefinition中的名字不对应，创建bean实例失败");
-            throw new IllegalArgumentException("BeanName和BeanDefinition中的名字不对应，创建bean实例失败");
-        }
-        Class<T> clazz = beanDefinition.getType();
-        Class<?>[] parameterTypes = beanDefinition.getParameterTypes();
-        Object[] parameterValues = beanDefinition.getValues();
-
-        T beanInstance = null;
-        try {
-            Constructor<T> constructor = clazz.getConstructor(parameterTypes);
-
-            beanInstance = constructor.newInstance(parameterValues);
-
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
-            log.error(e.getMessage());
-        }
-
-        return beanInstance;
-    }
+//    @Override
+//    public <T> T doCreateBean(String beanName, BeanDefinition<T> beanDefinition) {
+//        String name = beanDefinition.getName();
+//        if(!name.equals(beanName)){
+//            log.error("BeanName和BeanDefinition中的名字不对应，创建bean实例失败");
+//            throw new IllegalArgumentException("BeanName和BeanDefinition中的名字不对应，创建bean实例失败");
+//        }
+//        Class<T> clazz = beanDefinition.getType();
+//        Class<?>[] parameterTypes = beanDefinition.getParameterTypes();
+//        Object[] parameterValues = beanDefinition.getValues();
+//
+//        T beanInstance = null;
+//        try {
+//            Constructor<T> constructor = clazz.getConstructor(parameterTypes);
+//
+//            beanInstance = constructor.newInstance(parameterValues);
+//
+//        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
+//            log.error(e.getMessage());
+//        }
+//
+//        return beanInstance;
+//    }
 }
