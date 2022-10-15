@@ -1,4 +1,4 @@
-package sillybaka.springframework.beans.registry;
+package sillybaka.springframework.beans.factory.support;
 
 /**
  * Date: 2022/10/11
