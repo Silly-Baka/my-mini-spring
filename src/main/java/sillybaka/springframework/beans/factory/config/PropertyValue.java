@@ -15,6 +15,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PropertyValue {
+    /**
+     * 属性名字
+     */
     private String propertyName;
+    /**
+     * 属性值
+     */
     private Object propertyValue;
 }

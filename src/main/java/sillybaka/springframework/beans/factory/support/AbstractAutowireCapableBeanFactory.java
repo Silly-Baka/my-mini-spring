@@ -4,10 +4,12 @@ import lombok.extern.slf4j.Slf4j;
 import sillybaka.springframework.beans.factory.config.BeanDefinition;
 import sillybaka.springframework.beans.factory.config.PropertyValue;
 import sillybaka.springframework.beans.factory.config.PropertyValues;
+import sillybaka.springframework.beans.utils.PropertyUtils;
 
-import java.lang.reflect.Field;
+import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Map;
 
 
 /**
@@ -40,7 +42,6 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
         T beanInstance = INSTANTIATION_STRATEGY.instantiation(beanDefinition);
         autoWirePropertyValues(beanInstance,beanDefinition);
-
         return beanInstance;
     }
 
@@ -53,21 +54,29 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
         PropertyValues propertyValues = beanDefinition.getPropertyValues();
 
         Class<?> clazz = bean.getClass();
+
+        // 获取该Bean类的所有PropertyDescriptor
+        Map<String, PropertyDescriptor> beanPropertyMap = PropertyUtils.getBeanPropertyMap(clazz);
+
         for(PropertyValue pv : propertyValues.getPropertyValues()){
 
             String propertyName = pv.getPropertyName();
             Object propertyValue = pv.getPropertyValue();
 
             try {
-                Class<?> propertyType = clazz.getDeclaredField(propertyName).getType();
-                // 使用setter注入 要获取setter方法
-                // setXxxx()
-                String methodName = "set" + propertyName.substring(0,1).toUpperCase() + propertyName.substring(1);
-                Method setterMethod = clazz.getDeclaredMethod(methodName, propertyType);
+                //todo xml配置中 普通属性不能配置类型 应该以其他方式获取
+//                Class<?> propertyType = clazz.getDeclaredField(propertyName).getType();
+                PropertyDescriptor pd = beanPropertyMap.get(propertyName);
 
-                setterMethod.invoke(bean,propertyValue);
+//                // 使用setter注入 要获取setter方法
+//                // setXxxx()
+//                String methodName = "set" + propertyName.substring(0,1).toUpperCase() + propertyName.substring(1);
+//                Method setterMethod = clazz.getDeclaredMethod(methodName, propertyType);
+//                setterMethod.invoke(bean,propertyValue);
+                Method setterMethod = pd.getWriteMethod();
+                setterMethod.invoke(bean, propertyValue);
 
-            } catch (NoSuchFieldException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+            } catch (InvocationTargetException | IllegalAccessException e) {
                 e.printStackTrace();
             }
         }
