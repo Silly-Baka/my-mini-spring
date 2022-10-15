@@ -18,10 +18,6 @@ import lombok.NoArgsConstructor;
 public class BeanDefinition<T> {
 
     /**
-     * Bean的名字
-     */
-    private String name;
-    /**
      * Bean的类型
      */
     private Class<T> type;
@@ -29,10 +25,4 @@ public class BeanDefinition<T> {
      * Bean的属性
      */
     private PropertyValues propertyValues;
-
-
-    public BeanDefinition(String name,Class<T> type){
-        this.name = name;
-        this.type = type;
-    }
 }

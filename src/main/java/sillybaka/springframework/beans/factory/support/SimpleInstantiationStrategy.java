@@ -12,7 +12,7 @@ import java.lang.reflect.InvocationTargetException;
  * @Author SillyBaka
  * Description：使用jdk提供的反射来实例化对象
  **/
-public class SimpleInstantiationStrategy implements InstantiationStrategy{
+public class SimpleInstantiationStrategy implements InstantiationStrategy {
     @Override
     public <T> T instantiation(BeanDefinition<T> beanDefinition) {
         Class<T> clazz = beanDefinition.getType();

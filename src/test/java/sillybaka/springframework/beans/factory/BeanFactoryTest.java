@@ -7,6 +7,7 @@ import sillybaka.springframework.beans.factory.config.PropertyValue;
 import sillybaka.springframework.beans.factory.config.PropertyValues;
 import sillybaka.springframework.beans.utils.PropertyUtils;
 import sillybaka.springframework.entity.Car;
+import sillybaka.springframework.entity.CarRoll;
 
 import java.beans.PropertyDescriptor;
 import java.util.Map;
@@ -34,7 +35,7 @@ public class BeanFactoryTest {
         propertyValues.addPropertyValue(price);
         propertyValues.addPropertyValue(owner);
     //todo 2、读取对Bean的定义
-        BeanDefinition<Car> carBeanDefinition = new BeanDefinition<>("superCar", Car.class, propertyValues);
+        BeanDefinition<Car> carBeanDefinition = new BeanDefinition<>(Car.class, propertyValues);
     //todo 3、将Bean定义注册进注册表
         BeanDefinitionRegistry definitionRegistry = new DefaultListableBeanFactory();
         definitionRegistry.registerBeanDefinition("superCar",carBeanDefinition);
@@ -47,5 +48,50 @@ public class BeanFactoryTest {
 
         System.out.println(car);
         System.out.println(car.getClass());
+    }
+
+    /**
+     * 测试Bean注入功能
+     * 1、直接注入（级联Bean）
+     */
+    @Test
+    public void testBeanPropertyBeanStrightInjection(){
+        // 内嵌Bean定义
+        PropertyValue innerBrand = new PropertyValue("brand", "垃圾厂的轮胎");
+        PropertyValues innerPropertyValues = new PropertyValues();
+        innerPropertyValues.addPropertyValue(innerBrand);
+
+        BeanDefinition<CarRoll> innerBeanDefinition = new BeanDefinition<>(CarRoll.class, innerPropertyValues);
+
+        // 外层Bean定义
+        PropertyValue carRoll = new PropertyValue("carRoll", innerBeanDefinition);
+        PropertyValue brand = new PropertyValue("brand", "宝马");
+        PropertyValue price = new PropertyValue("price", 2000000);
+        PropertyValue owner = new PropertyValue("owner", "sillybaka");
+        PropertyValues propertyValues = new PropertyValues();
+        propertyValues.addPropertyValue(brand);
+        propertyValues.addPropertyValue(price);
+        propertyValues.addPropertyValue(owner);
+        propertyValues.addPropertyValue(carRoll);
+
+        BeanDefinition<Car> beanDefinition = new BeanDefinition<>(Car.class, propertyValues);
+
+        // 将bean定义注册进注册表
+        BeanDefinitionRegistry beanDefinitionRegistry = new DefaultListableBeanFactory();
+        beanDefinitionRegistry.registerBeanDefinition("niubiCar",beanDefinition);
+
+        //todo 若有内联bean，则需要手动添加PropertyDescriptor
+        PropertyUtils.addPropertyDescriptor(CarRoll.class,"brand",null);
+
+        PropertyUtils.addPropertyDescriptor(Car.class,"brand",null);
+        PropertyUtils.addPropertyDescriptor(Car.class,"price",null);
+        PropertyUtils.addPropertyDescriptor(Car.class,"owner",null);
+        PropertyUtils.addPropertyDescriptor(Car.class,"carRoll",BeanDefinition.class);
+
+        // 创建Bean
+        BeanFactory beanFactory = new DefaultListableBeanFactory();
+        Object niubiCar = beanFactory.getBean("niubiCar");
+
+        System.out.println(niubiCar);
     }
 }
