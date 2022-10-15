@@ -78,9 +78,10 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
                     BeanReference beanReference = (BeanReference) propertyValue;
                     String beanName = beanReference.getBeanName();
-                    //todo 获取Bean实例 --> 1、有可能该Bean实例尚未创建 应该重写为阻塞等待
+                    //todo 获取Bean实例 --> 1、有可能该Bean实例尚未创建 应该重写为阻塞等待 （不会有这种情况，因为是懒汉式的设计）
                     //                    2、有可能会发生循环依赖，在后面再解决
                     Object innerBean = getBean(beanName);
+
                     setterMethod.invoke(bean,innerBean);
 
                 }else if(propertyType == BeanDefinition.class){
