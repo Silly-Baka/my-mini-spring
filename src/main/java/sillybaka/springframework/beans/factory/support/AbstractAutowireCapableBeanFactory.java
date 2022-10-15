@@ -2,6 +2,7 @@ package sillybaka.springframework.beans.factory.support;
 
 import lombok.extern.slf4j.Slf4j;
 import sillybaka.springframework.beans.factory.config.BeanDefinition;
+import sillybaka.springframework.beans.factory.config.BeanReference;
 import sillybaka.springframework.beans.factory.config.PropertyValue;
 import sillybaka.springframework.beans.factory.config.PropertyValues;
 import sillybaka.springframework.beans.utils.PropertyUtils;
@@ -17,7 +18,7 @@ import java.util.Map;
  * Time: 19:40
  *
  * @Author SillyBaka
- * Description：抽象的自动装配Bean工厂 --> 定义了使用bean定义创建bean实例的抽象方法
+ * Description：抽象的自动装配Bean工厂 --> 负责自动装配的逻辑
  **/
 @Slf4j
 public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory{
@@ -25,20 +26,18 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
     private static final InstantiationStrategy INSTANTIATION_STRATEGY = new SimpleInstantiationStrategy();
 
     @Override
-    protected <T> T createBean(String beanName, BeanDefinition<T> beanDefinition) {
-        return doCreateBean(beanName,beanDefinition);
+    protected <T> T createBean( BeanDefinition<T> beanDefinition) {
+        return doCreateBean(beanDefinition);
     }
 
     /**
      * 创建Bean实例的实际逻辑
      */
-    public <T> T doCreateBean(String beanName, BeanDefinition<T> beanDefinition){
-        String name = beanDefinition.getName();
-        if(!name.equals(beanName)){
-            log.error("BeanName和BeanDefinition中的名字不对应，创建bean实例失败");
-            throw new IllegalArgumentException("BeanName和BeanDefinition中的名字不对应，创建bean实例失败");
-        }
-        Class<T> clazz = beanDefinition.getType();
+    public <T> T doCreateBean(BeanDefinition<T> beanDefinition){
+//        if(!name.equals(beanName)){
+//            log.error("BeanName和BeanDefinition中的名字不对应，创建bean实例失败");
+//            throw new IllegalArgumentException("BeanName和BeanDefinition中的名字不对应，创建bean实例失败");
+//        }
 
         T beanInstance = INSTANTIATION_STRATEGY.instantiation(beanDefinition);
         autoWirePropertyValues(beanInstance,beanDefinition);
@@ -55,8 +54,10 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
         Class<?> clazz = bean.getClass();
 
-        // 获取该Bean类的所有PropertyDescriptor
+        //todo 获取该Bean类的所有PropertyDescriptor --> 生命周期开始为在XMl扫描时按需调用
         Map<String, PropertyDescriptor> beanPropertyMap = PropertyUtils.getBeanPropertyMap(clazz);
+
+        Map<String, Class<?>> propertyTypeMap = PropertyUtils.getPropertyTypeMap(clazz);
 
         for(PropertyValue pv : propertyValues.getPropertyValues()){
 
@@ -68,13 +69,30 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 //                Class<?> propertyType = clazz.getDeclaredField(propertyName).getType();
                 PropertyDescriptor pd = beanPropertyMap.get(propertyName);
 
-//                // 使用setter注入 要获取setter方法
-//                // setXxxx()
-//                String methodName = "set" + propertyName.substring(0,1).toUpperCase() + propertyName.substring(1);
-//                Method setterMethod = clazz.getDeclaredMethod(methodName, propertyType);
-//                setterMethod.invoke(bean,propertyValue);
+                // 从属性类型map中获取属性类型
+                Class<?> propertyType = propertyTypeMap.get(propertyName);
+
                 Method setterMethod = pd.getWriteMethod();
-                setterMethod.invoke(bean, propertyValue);
+                // 引用类型
+                if(propertyType == BeanReference.class){
+
+                    BeanReference beanReference = (BeanReference) propertyValue;
+                    String beanName = beanReference.getBeanName();
+                    //todo 获取Bean实例 --> 1、有可能该Bean实例尚未创建 应该重写为阻塞等待
+                    //                    2、有可能会发生循环依赖，在后面再解决
+                    Object innerBean = getBean(beanName);
+                    setterMethod.invoke(bean,innerBean);
+
+                }else if(propertyType == BeanDefinition.class){
+                // Bean类型（级联定义了一个Bean）
+                    //todo 先根据Bean定义创建Bean实例  --> 有可能破坏单例 需要保存在多例注册表中
+                    BeanDefinition<?> innerBeanDefinition = (BeanDefinition<?>) propertyValue;
+                    Object innerBean = createBean(innerBeanDefinition);
+                    setterMethod.invoke(bean,innerBean);
+                }else {
+                // 普通属性 直接使用Setter方法注入
+                    setterMethod.invoke(bean, propertyValue);
+                }
 
             } catch (InvocationTargetException | IllegalAccessException e) {
                 e.printStackTrace();

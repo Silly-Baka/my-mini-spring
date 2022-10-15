@@ -6,18 +6,14 @@ import lombok.NoArgsConstructor;
 
 /**
  * Date: 2022/10/15
- * Time: 16:15
+ * Time: 19:18
  *
  * @Author SillyBaka
  * Description：
  **/
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
-public class Car {
+public class CarRoll {
     private String brand;
-    private double price;
-    private String owner;
-
-    private CarRoll carRoll;
 }

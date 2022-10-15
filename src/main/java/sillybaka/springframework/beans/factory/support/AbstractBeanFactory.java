@@ -21,7 +21,7 @@ public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry i
             synchronized (AbstractBeanFactory.class){
                 bean = getSingletonBean(beanName);
                 if(bean == null){
-                    bean = createBean(beanName,getBeanDefinition(beanName));
+                    bean = createBean(getBeanDefinition(beanName));
                     // 注册进注册表
                     registerBean(beanName,bean);
                 }
@@ -34,7 +34,7 @@ public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry i
      * 创建名为beanName的Bean实例
      * 创建策略由实现类决定
      */
-    protected abstract <T> T createBean(String beanName, BeanDefinition<T> beanDefinition);
+    protected abstract <T> T createBean(BeanDefinition<T> beanDefinition);
 
     /**
      * 根据beanName获取它的bean定义

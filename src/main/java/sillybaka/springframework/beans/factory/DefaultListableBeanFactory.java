@@ -6,8 +6,6 @@ import sillybaka.springframework.beans.factory.config.BeanDefinition;
 import sillybaka.springframework.beans.factory.config.BeanDefinitionRegistry;
 import sillybaka.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
