@@ -2,7 +2,7 @@
 
 ## 1、简单的IOC容器
 
-![img](C:/Users/86176/Desktop/%E7%AC%94%E8%AE%B0/my-mini-spring.assets/bean-definition-and-bean-definition-registry-16654901781672.png)
+![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/bean-definition-and-bean-definition-registry-16654901781672.png?token=ATHSE3YHQIEO5Z25F7OLMYDDJO7OG)
 
 ### 1. 工厂模式实现BeanFactory
 
@@ -43,7 +43,7 @@
 > 1. 使用jdk的反射获取类的构造函数来实例化
 > 2. 使用Cglib动态代理来生成实例对象
 
-![img](my-mini-spring.assets/instantiation-strategy-16656693115683-16656693131115.png)
+![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/instantiation-strategy-16656693115683-16656693131115.png?token=ATHSE323KVHOCDX2VZ6SLJDDJO7OS)
 
 
 
@@ -97,34 +97,38 @@
 >
 > ​	**`Resource接口`**是**Spring中所有资源的抽象和访问接口**，用于**解决URL接口的不足**
 >
-> ![img](my-mini-spring.assets/webp.webp)								**Spring中Resource接口的UML关系图**
+> ![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/webp.webp?token=ATHSE325TZSKGAKIZFQFW7TDJO7O2)								**Spring中Resource接口的UML关系图**
 
-![img](my-mini-spring.assets/resource-16658411461912.png)
+![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/resource-16658411461912.png?token=ATHSE32QCA2UD4BX76SI7NDDJO7PC)
 
 ​	`使用策略模式，在获取资源时先获取当前的上下文，再根据上下文的类型来获取相应类型的Resource类对象`
 
 ##### 1、 FileSystemResource（文件系统资源）
 
+> `FileSystemResource`指的是**基于文件系统**获取的资源，一般是服务器本地的文件资源
+
 ##### 2、 ClassPathResource（类路径资源）
 
-> `ClassPathResource`表示从类路径获取的资源，通常使用线程上下文的ClassLoader进行资源加载.
+> `ClassPathResource`表示**从类路径获取的资源**，通常使用线程上下文的ClassLoader进行资源加载.
 > 我们的Web项目通常编译后，会将class文件存储在`WEB-INF/classes`下，Spring就可以通过`ClassPathResource`来访问这些文件.
 
 ##### 3、 UrlResource（Url资源）
+
+> `UrlResource`表示**基于URL路径获取**的资源，一般是一种web资源。
 
 
 
 #### 5.2 ResourceLoader接口（Spring中定位资源策略的抽象）
 
-> ![img](my-mini-spring.assets/webp-16658927138937-16658928104089.webp)
+> ![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/webp-16658927138937-16658928104089.webp?token=ATHSE34CPXGTKI23G2OLPRDDJO7PI)
 >
 > ​							 **Spring中ResourceLoader接口的UML关系图**
 >
-> ![image-20221016120015378](my-mini-spring.assets/image-20221016120015378-166589281704010.png)
+> ![image-20221016120015378](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221016120015378-166589281704010.png?token=ATHSE3YBY3CS27JWJTM2PATDJO7PQ)
 >
 >   **`ResourceLoader接口是资源加载定位策略的抽象，根据上下文使用策略模式获取对应的Resource实现类对象`**
 
-##### 1、 DefaultResourceLoader
+#####  1、DefaultResourceLoader
 
-> **DefaultResourceLoader**是**`策略模式的实现`**，**可根据路径的前缀返回不同类型的Resource**
+> **DefaultResourceLoader**是**`资源加载策略模式的实现`**，**可根据路径的前缀返回不同类型的Resource**
 
