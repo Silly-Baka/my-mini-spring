@@ -1,6 +1,7 @@
 package sillybaka.springframework.beans.factory.support;
 
 import sillybaka.springframework.beans.factory.config.BeanDefinition;
+import sillybaka.springframework.beans.factory.config.InstantiationStrategy;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;

@@ -1,10 +1,9 @@
-package sillybaka.springframework.beans.factory;
+package sillybaka.springframework.beans.factory.support;
 
 import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
 import sillybaka.springframework.beans.factory.config.BeanDefinition;
-import sillybaka.springframework.beans.factory.config.BeanDefinitionRegistry;
-import sillybaka.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory;
+import sillybaka.springframework.beans.factory.ConfigurableListableBeanFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,7 +16,7 @@ import java.util.Map;
  * Description：核心的Bean工厂，真正可以独立地创建一个Bean
  **/
 @Slf4j
-public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFactory implements BeanDefinitionRegistry {
+public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFactory implements BeanDefinitionRegistry, ConfigurableListableBeanFactory {
     /**
      * bean定义的注册表
      */

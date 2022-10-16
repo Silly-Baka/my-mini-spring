@@ -1,11 +1,9 @@
 package sillybaka.springframework.beans.factory.support;
 
 import lombok.extern.slf4j.Slf4j;
-import sillybaka.springframework.beans.factory.config.BeanDefinition;
-import sillybaka.springframework.beans.factory.config.BeanReference;
-import sillybaka.springframework.beans.factory.config.PropertyValue;
-import sillybaka.springframework.beans.factory.config.PropertyValues;
-import sillybaka.springframework.beans.utils.PropertyUtils;
+import sillybaka.springframework.beans.factory.AutowireCapableBeanFactory;
+import sillybaka.springframework.beans.factory.config.*;
+import sillybaka.springframework.utils.PropertyUtils;
 
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
@@ -18,10 +16,10 @@ import java.util.Map;
  * Time: 19:40
  *
  * @Author SillyBaka
- * Description：抽象的自动装配Bean工厂 --> 负责自动装配的逻辑
+ * Description：抽象的自动装配Bean工厂 --> 负责实现自动装配的逻辑
  **/
 @Slf4j
-public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory{
+public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory implements AutowireCapableBeanFactory {
 
     private static final InstantiationStrategy INSTANTIATION_STRATEGY = new SimpleInstantiationStrategy();
 
@@ -46,13 +44,14 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
     /**
      * 为bean实例对象自动装配属性 (底层使用setter注入）
-     * @param bean 实例对象
+     * @param existingBean 实例对象
      * @param beanDefinition bean定义
      */
-    public <T> void autoWirePropertyValues(T bean, BeanDefinition<T> beanDefinition){
+    @Override
+    public <T> void autoWirePropertyValues(T existingBean, BeanDefinition<T> beanDefinition){
         PropertyValues propertyValues = beanDefinition.getPropertyValues();
 
-        Class<?> clazz = bean.getClass();
+        Class<?> clazz = existingBean.getClass();
 
         //todo 获取该Bean类的所有PropertyDescriptor --> 生命周期开始为在XMl扫描时按需调用
         Map<String, PropertyDescriptor> beanPropertyMap = PropertyUtils.getBeanPropertyMap(clazz);
@@ -82,17 +81,17 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
                     //                    2、有可能会发生循环依赖，在后面再解决
                     Object innerBean = getBean(beanName);
 
-                    setterMethod.invoke(bean,innerBean);
+                    setterMethod.invoke(existingBean,innerBean);
 
                 }else if(propertyType == BeanDefinition.class){
                 // Bean类型（级联定义了一个Bean）
                     //todo 先根据Bean定义创建Bean实例  --> 有可能破坏单例 需要保存在多例注册表中
                     BeanDefinition<?> innerBeanDefinition = (BeanDefinition<?>) propertyValue;
                     Object innerBean = createBean(innerBeanDefinition);
-                    setterMethod.invoke(bean,innerBean);
+                    setterMethod.invoke(existingBean,innerBean);
                 }else {
                 // 普通属性 直接使用Setter方法注入
-                    setterMethod.invoke(bean, propertyValue);
+                    setterMethod.invoke(existingBean, propertyValue);
                 }
 
             } catch (InvocationTargetException | IllegalAccessException e) {

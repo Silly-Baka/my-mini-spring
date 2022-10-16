@@ -1,5 +1,7 @@
-package sillybaka.springframework.beans.factory.config;
+package sillybaka.springframework.beans.factory.support;
 
+
+import sillybaka.springframework.beans.factory.config.BeanDefinition;
 
 /**
  * Date: 2022/10/13

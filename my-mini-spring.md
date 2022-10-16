@@ -2,7 +2,7 @@
 
 ## 1、简单的IOC容器
 
-![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/bean-definition-and-bean-definition-registry-16654901781672.png?token=ATHSE3YHQIEO5Z25F7OLMYDDJO7OG)
+![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/bean-definition-and-bean-definition-registry-16659134397361.png)
 
 ### 1. 工厂模式实现BeanFactory
 
@@ -43,7 +43,7 @@
 > 1. 使用jdk的反射获取类的构造函数来实例化
 > 2. 使用Cglib动态代理来生成实例对象
 
-![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/instantiation-strategy-16656693115683-16656693131115.png?token=ATHSE323KVHOCDX2VZ6SLJDDJO7OS)
+![instantiation-strategy-16656693115683-16656693131115.png](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/instantiation-strategy-16656693115683-16656693131115-16659138097499.png)
 
 
 
@@ -99,7 +99,7 @@
 >
 > ![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/webp.webp?token=ATHSE325TZSKGAKIZFQFW7TDJO7O2)								**Spring中Resource接口的UML关系图**
 
-![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/resource-16658411461912.png?token=ATHSE32QCA2UD4BX76SI7NDDJO7PC)
+![resource-16658411461912.png](C:\Users\86176\Desktop\笔记\my-mini-spring.assets\resource-16658411461912-166591384489411.png)
 
 ​	`使用策略模式，在获取资源时先获取当前的上下文，再根据上下文的类型来获取相应类型的Resource类对象`
 
@@ -131,4 +131,40 @@
 #####  1、DefaultResourceLoader
 
 > **DefaultResourceLoader**是**`资源加载策略模式的实现`**，**可根据路径的前缀返回不同类型的Resource**
+
+
+
+### 6、更新BeanFactory的继承关系
+
+![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/xml-file-define-bean-16659210080936.png)
+
+![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/up-743c3654916a300a7d537c5a39ad625aefb.png)
+
+​											**现继承关系**
+
+#### 6.1 HierarchicalBeanFactory（分层的BeanFactory）
+
+> `HierarchicalBeanFactory`为BeanFactory提供了分层的能力，让实现这个接口的BeanFactory之间拥有`层级关系（子级BeanFactory无法获得父级BeanFactory定义的Bean）`，为BeanFactory提供了可以`获取父级BeanFactory`的接口
+
+#### 6.2 ListableBeanFactory（可列表化的BeanFactory）
+
+> 实现了`ListableBeanFactory`接口的BeanFactory可以`一次性列出所有需要的Bean的信息`，提供了**查询Bean**的能力
+
+#### 6.3 ConfigurableBeanFactory（可配置的BeanFactory）
+
+> `ConfigurableBeanFactory`为BeanFactory提供了多个`配置BeanFactory`的接口，允许框架开发者**对BeanFactory进行自定义配置**
+
+#### 6.4 AutowireCapableBeanFactory（可自动装配的BeanFactory）
+
+> `AutowireCapableBeanFactory`为BeanFactory提供了`自动装配Bean属性`的接口
+
+#### 6.5 ConfigurableListableBeanFactory
+
+> `ConfigurableListableBeanFactory`接口**`整合了BeanFactory所需的所有特性`**，同时还**提供了分析和修改Bean的工具，也提供了解决循环依赖的方法（预定义Bean实例）**
+
+
+
+### 7、 读取XML配置文件并配置Bean
+
+> 有了**`Resource和ResourceLoader`**，就可以**在xml格式配置文件中声明式地定义bean的信息，然后使用Resource和ResourceLoader读取类的根目录下的xml文件，解析出bean的信息，再往IOC容器中注册BeanDefinition。**
 

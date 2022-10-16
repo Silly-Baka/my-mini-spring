@@ -1,6 +1,7 @@
 package sillybaka.springframework.beans.factory.support;
 
 import sillybaka.springframework.beans.factory.config.BeanDefinition;
+import sillybaka.springframework.beans.factory.config.InstantiationStrategy;
 
 /**
  * Date: 2022/10/13

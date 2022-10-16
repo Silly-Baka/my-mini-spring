@@ -2,6 +2,7 @@ package sillybaka.springframework.beans.factory.support;
 
 import sillybaka.springframework.beans.factory.BeanFactory;
 import sillybaka.springframework.beans.factory.config.BeanDefinition;
+import sillybaka.springframework.beans.factory.ConfigurableBeanFactory;
 
 /**
  * Date: 2022/10/11
@@ -10,7 +11,7 @@ import sillybaka.springframework.beans.factory.config.BeanDefinition;
  * @Author SillyBaka
  * Description：抽象的Bean工厂
  **/
-public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry implements BeanFactory {
+public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry implements BeanFactory, ConfigurableBeanFactory {
     @Override
     public Object getBean(String beanName) {
 

@@ -1,4 +1,4 @@
-package sillybaka.springframework.beans.factory.support;
+package sillybaka.springframework.beans.factory.config;
 
 import sillybaka.springframework.beans.factory.config.BeanDefinition;
 

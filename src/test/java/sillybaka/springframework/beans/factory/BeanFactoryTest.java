@@ -2,7 +2,9 @@ package sillybaka.springframework.beans.factory;
 
 import org.junit.Test;
 import sillybaka.springframework.beans.factory.config.*;
-import sillybaka.springframework.beans.utils.PropertyUtils;
+import sillybaka.springframework.beans.factory.support.BeanDefinitionRegistry;
+import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactory;
+import sillybaka.springframework.utils.PropertyUtils;
 import sillybaka.springframework.entity.Car;
 import sillybaka.springframework.entity.CarRoll;
 

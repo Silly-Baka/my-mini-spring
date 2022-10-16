@@ -1,11 +1,10 @@
-package sillybaka.springframework.beans.utils;
+package sillybaka.springframework.utils;
 
 import com.sun.istack.internal.Nullable;
 
 import java.beans.IntrospectionException;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
