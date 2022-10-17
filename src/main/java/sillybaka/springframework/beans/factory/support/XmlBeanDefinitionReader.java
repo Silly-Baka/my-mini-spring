@@ -1,0 +1,146 @@
+package sillybaka.springframework.beans.factory.support;
+
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.core.util.XmlUtil;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import sillybaka.springframework.beans.factory.config.BeanDefinition;
+import sillybaka.springframework.beans.factory.config.BeanReference;
+import sillybaka.springframework.beans.factory.config.PropertyValue;
+import sillybaka.springframework.beans.factory.config.PropertyValues;
+import sillybaka.springframework.core.io.Resource;
+import sillybaka.springframework.core.io.ResourceLoader;
+import sillybaka.springframework.exception.BeansException;
+import sillybaka.springframework.utils.PropertyUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Locale;
+
+/**
+ * Date: 2022/10/16
+ * Time: 21:01
+ *
+ * @Author SillyBaka
+ * Description：用于从Xml文件中读取Bean定义的读取器
+ **/
+public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
+
+    public static final String BEAN_ELEMENT_TAG = "bean";
+    public static final String PROPERTY_ELEMENT_TAG = "property";
+    public static final String ID_ATTRIBUTE = "id";
+    public static final String NAME_ATTRIBUTE = "name";
+    public static final String CLASS_ATTRIBUTE = "class";
+    public static final String VALUE_ATTRIBUTE = "value";
+    public static final String REF_ATTRIBUTE = "ref";
+
+    public XmlBeanDefinitionReader(ResourceLoader resourceLoader, BeanDefinitionRegistry beanDefinitionRegistry) {
+        super(resourceLoader, beanDefinitionRegistry);
+    }
+
+    @Override
+    public void loadBeanDefinitions(Resource resource) {
+        try {
+            try (InputStream inputStream = resource.getInputStream()) {
+                doLoadBeanDefinitions(inputStream);
+            }
+        } catch (IOException e) {
+            throw new BeansException("");
+        }
+    }
+
+    // 封装实际的读取Bean定义逻辑 方便纵向拓展
+    public void doLoadBeanDefinitions(InputStream inputStream){
+        Document document = XmlUtil.readXML(inputStream);
+        // 根标签
+        Element root = document.getDocumentElement();
+        // 根标签下的子节点
+        NodeList childNodes = root.getChildNodes();
+        int length = childNodes.getLength();
+        for (int i = 0; i < length; i++) {
+            // 如果子节点是一个标签 则开始解析
+            if(childNodes.item(i) instanceof Element){
+                Element element = (Element) childNodes.item(i);
+                // 如果该标签为bean标签
+                if(BEAN_ELEMENT_TAG.equals(element.getTagName())){
+                    //解析bean标签
+                    String id = element.getAttribute(ID_ATTRIBUTE);
+                    String name = element.getAttribute(NAME_ATTRIBUTE);
+                    String className = element.getAttribute(CLASS_ATTRIBUTE);
+
+                    Class clazz;
+                    try {
+                        clazz = Class.forName(className);
+                    } catch (ClassNotFoundException e) {
+                        throw new BeansException("不存在该类型: [ "+ className + "] 的类",e);
+                    }
+
+                    // 存放Bean定义
+                    BeanDefinition<?> beanDefinition = new BeanDefinition<>();
+                    beanDefinition.setType(clazz);
+                    PropertyValues propertyValues = new PropertyValues();
+
+                    // 如果id不为空 则beanName为id
+                    String beanName = StrUtil.isNotBlank(id) ? id : name;
+
+                    // 若都为空 则beanName为类名（首字母小写）
+                    if(StrUtil.isBlank(beanName)){
+                        beanName = className.substring(className.lastIndexOf('.'));
+                        beanName = beanName.substring(0,1).toLowerCase(Locale.ROOT) + beanName.substring(1);
+                    }
+
+                    // 查询注册表中是否有同名的bean
+                    if(getBeanDefinitionRegistry().containsBeanDefinition(beanName)){
+                        throw new BeansException("不能注册重名的Bean，注册失败");
+                    }
+
+                    // 读取bean标签下的子标签（property，bean等）
+                    NodeList subNodes = element.getChildNodes();
+                    int subLength = subNodes.getLength();
+                    for (int j = 0; j < subLength; j++) {
+                        if(subNodes.item(j) instanceof Element){
+                            Element subElement = (Element) subNodes.item(j);
+                            String subTagName = subElement.getTagName();
+                            // 如果是property标签
+                            if(PROPERTY_ELEMENT_TAG.equals(subTagName)){
+                                String propertyName = subElement.getAttribute(NAME_ATTRIBUTE);
+                                String propertyValue = subElement.getAttribute(VALUE_ATTRIBUTE);
+
+                                PropertyValue pv;
+                                // 是一个值
+                                if(StrUtil.isNotBlank(propertyValue)){
+                                    //todo 这里的value是字符串类型 怎么转换为原类型？String可以转换成任意基本类型，而value只处理基本类型的属性
+                                    //  应该需要一个属性类型表 才方便转换
+                                    pv = new PropertyValue(propertyName, propertyValue);
+
+                                    PropertyUtils.addPropertyDescriptor(clazz,propertyName,null);
+
+                                }else {
+                                // 是一个引用 则propertyRef是引用的beanName
+                                    String propertyRef = subElement.getAttribute(REF_ATTRIBUTE);
+                                    BeanReference beanReference = new BeanReference(propertyRef);
+
+                                    // 引用作为属性值，自动装配时会注入bean实例
+                                    pv = new PropertyValue(propertyName,beanReference);
+
+                                    PropertyUtils.addPropertyDescriptor(clazz,propertyName,BeanReference.class);
+                                }
+
+                                // 添加属性到列表中
+                                propertyValues.addPropertyValue(pv);
+
+                            }else if(BEAN_ELEMENT_TAG.equals(subTagName)){
+                            //todo 如果是bean标签 则创建一个内置BeanDefinition 先不处理 嵌套太多 代码复杂
+
+                            }
+                        }
+                    }
+                    beanDefinition.setPropertyValues(propertyValues);
+                    // 将bean定义注册进注册表中
+                    getBeanDefinitionRegistry().registerBeanDefinition(beanName,beanDefinition);
+                }
+            }
+        }
+    }
+}

@@ -47,7 +47,7 @@ public class PropertyUtils {
             synchronized (PropertyUtils.class){
                 descriptorMap = BEANS_PROPERTY_MAP.get(clazz);
                 if(descriptorMap == null){
-                    addPropertyDescriptor(clazz);
+                    addAllPropertyDescriptor(clazz);
                 }
                 descriptorMap = BEANS_PROPERTY_MAP.get(clazz);
             }
@@ -61,7 +61,7 @@ public class PropertyUtils {
      * 生命周期开始为在XMl扫描时按需调用，只能注入基本属性
      * @param clazz 指定类的class
      */
-    public static void addPropertyDescriptor(Class<?> clazz){
+    public static void addAllPropertyDescriptor(Class<?> clazz){
         Map<String, PropertyDescriptor> descriptorMap = BEANS_PROPERTY_MAP.get(clazz);
         if(descriptorMap == null){
             BEANS_PROPERTY_MAP.putIfAbsent(clazz,new HashMap<>());

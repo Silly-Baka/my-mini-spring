@@ -22,5 +22,5 @@ public class BeanReference {
     /**
      * bean的类型
      */
-    private String beanType;
+//    private String beanType;
 }
