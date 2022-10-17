@@ -19,4 +19,9 @@ public interface BeanDefinitionRegistry {
      * @param <T>
      */
     <T> void registerBeanDefinition(String beanName, BeanDefinition<T> beanDefinition);
+
+    /**
+     * 查看在注册表中是否有同名的bean定义
+     */
+    boolean containsBeanDefinition(String beanName);
 }
