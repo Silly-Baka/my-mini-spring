@@ -5,11 +5,11 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
                            http://www.springframework.org/schema/context  http://www.springframework.org/schema/context/spring-context.xsd">
 
-    <bean id="carBean" class="sillybaka.springframework.entity.Car">
+    <bean id="carBean1" class="sillybaka.springframework.entity.Car">
         <property name="brand" value="Benci"/>
-        <property name="carRoll" ref="carRoll"/>
+        <property name="carRoll" ref="carRoll1"/>
     </bean>
-    <bean id="carRoll" class="sillybaka.springframework.entity.CarRoll">
+    <bean id="carRoll1" class="sillybaka.springframework.entity.CarRoll">
         <property name="brand" value="niubiChelun"/>
     </bean>
 </beans>
