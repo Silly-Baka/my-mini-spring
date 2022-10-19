@@ -14,8 +14,9 @@ public interface AutowireCapableBeanFactory extends BeanFactory {
 
     /**
      * 按照Bean的定义为已创建的bean实例对象自动装配属性 (底层使用setter注入）
+     * @param beanName
      * @param existingBean 已创建的bean实例对象
      * @param beanDefinition bean定义
      */
-    <T> void autoWirePropertyValues(T existingBean, BeanDefinition<T> beanDefinition);
+    <T> void autoWirePropertyValues(String beanName,T existingBean, BeanDefinition<T> beanDefinition);
 }

@@ -3,15 +3,25 @@ package sillybaka.springframework.beans.factory.support;
 import sillybaka.springframework.beans.factory.BeanFactory;
 import sillybaka.springframework.beans.factory.config.BeanDefinition;
 import sillybaka.springframework.beans.factory.ConfigurableBeanFactory;
+import sillybaka.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import sillybaka.springframework.beans.factory.config.BeanPostProcessor;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Date: 2022/10/11
  * Time: 20:47
  *
  * @Author SillyBaka
- * Description：抽象的Bean工厂
+ * Description：抽象的Bean工厂（实现了通用的方法）
  **/
 public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry implements BeanFactory, ConfigurableBeanFactory {
+
+    private final List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
+
+    private final List<BeanFactoryPostProcessor> beanFactoryPostProcessors = new ArrayList<>();
+
     @Override
     public Object getBean(String beanName) {
 
@@ -22,7 +32,7 @@ public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry i
             synchronized (AbstractBeanFactory.class){
                 bean = getSingletonBean(beanName);
                 if(bean == null){
-                    bean = createBean(getBeanDefinition(beanName));
+                    bean = createBean(beanName,getBeanDefinition(beanName));
                     // 注册进注册表
                     registerBean(beanName,bean);
                 }
@@ -35,10 +45,30 @@ public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry i
      * 创建名为beanName的Bean实例
      * 创建策略由实现类决定
      */
-    protected abstract <T> T createBean(BeanDefinition<T> beanDefinition);
+    protected abstract <T> T createBean(String beanName,BeanDefinition<T> beanDefinition);
 
     /**
      * 根据beanName获取它的bean定义
      */
     protected abstract BeanDefinition<?> getBeanDefinition(String beanName);
+
+    @Override
+    public List<BeanPostProcessor> getBeanPostProcessors() {
+        return beanPostProcessors;
+    }
+
+    @Override
+    public void addBeanPostProcessor(BeanPostProcessor beanPostProcessor) {
+        beanPostProcessors.add(beanPostProcessor);
+    }
+
+    @Override
+    public List<BeanFactoryPostProcessor> getBeanFactoryBeanPostProcessors() {
+        return beanFactoryPostProcessors;
+    }
+
+    @Override
+    public void addBeanFactoryPostProcessor(BeanFactoryPostProcessor beanFactoryPostProcessor) {
+        beanFactoryPostProcessors.add(beanFactoryPostProcessor);
+    }
 }

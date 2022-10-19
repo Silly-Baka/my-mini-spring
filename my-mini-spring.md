@@ -1,5 +1,9 @@
 # IOC篇
 
+## Bean的生命周期
+
+![https://img-blog.csdnimg.cn/bc9990a8b19544388b6d193b745135a2.png#pic_center](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/bc9990a8b19544388b6d193b745135a2.png)
+
 ## 1、简单的IOC容器
 
 ![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/bean-definition-and-bean-definition-registry-16659134397361.png)
@@ -164,7 +168,113 @@
 
 
 
-### 7、 读取XML配置文件并配置Bean
+### 7、 读取配置文件的Bean定义
 
-> 有了**`Resource和ResourceLoader`**，就可以**在xml格式配置文件中声明式地定义bean的信息，然后使用Resource和ResourceLoader读取类的根目录下的xml文件，解析出bean的信息，再往IOC容器中注册BeanDefinition。**
+> 有了**`Resource和ResourceLoader`**，就可以**读取配置文件**，现在可以开始**实现使用配置文件定义Bean的功能**了
+>
+> ![在这里插入图片描述](C:\Users\86176\Desktop\笔记\my-mini-spring.assets\74e8782a6ef54d11927d8d9bd6a6fbca.png)
+>
+> ​					**Spring中读取Bean定义的接口BeanDefinitionReader的继承关系**
+>
+> 
+>
+> **在本项目my-mini-spring中，只实现以XML文件的类型配置Bean的定义**
+>
+> 所以继承关系如下：
+>
+> ![image-20221016203946158](C:\Users\86176\Desktop\笔记\my-mini-spring.assets\image-20221016203946158.png)
 
+#### 7.1 BeanDefinitionReader
+
+> 流程：
+>
+> 1. 通过配置文件的**locations**，获取配置文件的资源**Resource**
+> 2. **读取**每一个资源**Resource **`（需要ResourceLoader）`
+> 3. 解析读取到的内容，**转化为BeanDefinition**
+> 4. 将BeanDefinition **注册到BeanDefinitionRegistry** 中  `（需要BeanDefinitionRegistry）`
+
+#### 7.2 XMLBeanDefinitionReader（实现读取XML文件中bean的逻辑）
+
+XML示例
+
+```xml
+<bean id="xxx" class="xxx" >
+	<property name="xxx" value="xxx"></property>
+	// 第一种 直接注入（级联）
+	<bean id="xxxx" class="xxxx">
+	</bean>
+	// 第二种 使用引用注入
+	<property name="xxx" ref="refXXX"></property>
+</bean>
+<bean id="refXXX" class="xxx">
+</bean>
+```
+
+
+
+
+
+### ==8、BeanFactoryPostProcessor 和 BeanPostProcessor（后置处理器）==
+
+> **BeanFactoryPostProcessor **是Spring提供的**容器拓展机制**，SpringIOC容器允许 **BeanFactoryPostProcessor** 在`**beanDefinition加载完之后，bean被实例化之前**，修改它的beanDefinition（方便拓展）`
+>
+> 有一个很**常见的应用场景**：
+>
+> 在XML配置文件的bean定义中添加占位符（引入properties配置文件中的值，**减少bean定义的硬编码**）
+>
+> ```xml
+> <bean id="black" class="com.ipluto.demo.BlackCat">
+>  <property name="name">
+>      <value>${cat.name}</value>
+>  </property>
+> </bean>
+> ```
+>
+> 按照一般读取XML bean的流程，最终这个bean中名为name的property的value=${cat.name}
+>
+> 但**实际上我们需要将占位符替换为properties配置文件中的实际数据**，而在这个场景下`BeanFactoryPostProcessor`便是用于**后置处理填充实际数据**的情况
+>
+> **BeanFactoryPostProcessor的源码如下：**
+>
+> ```java
+> @FunctionalInterface
+> public interface BeanFactoryPostProcessor {
+> 
+> 	/**
+> 	 * Modify the application context's internal bean factory after its standard
+> 	 * initialization. All bean definitions will have been loaded, but no beans
+> 	 * will have been instantiated yet. This allows for overriding or adding
+> 	 * properties even to eager-initializing beans.
+> 	 * @param beanFactory the bean factory used by the application context
+> 	 * @throws org.springframework.beans.BeansException in case of errors
+> 	 */
+> 	void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException;
+> 
+> }
+> ```
+
+
+
+> **BeanPostProcessor** 也是Spring提供的**容器拓展机制**，该接口允许我们在 **Bean对象实例化以及依赖注入完成后**，但在**显式地调用初始化方法的前后** 添加我们自己的逻辑。
+>
+> **Spring中的使用场景：**
+>
+> 1. 用于处理 @Value，@Autowired 等注解
+> 2. 主要用于处理Bean内部的注解实现
+> 3. 在AOP中，before方法用于寻找所有切面并解析切面，after方法用于生成动态代理类 并且return
+>
+> **源码如下：**	
+>
+> ```java
+> public interface BeanPostProcessor {
+> 	
+>     // 显式地初始化之前调用
+> 	Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException;
+> 
+>     // 显式地初始化之后调用
+> 	Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException;
+> 
+> }
+> ```
+>
+> 

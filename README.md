@@ -1,6 +1,6 @@
 # 介绍
 
-**本项目是基于学习该项目（https://github.com/DerekYRC/mini-spring） 而进行练习的个人项目my-mini-spring**
+**本项目是基于学习该项目https://github.com/DerekYRC/mini-spring而进行练习的个人项目my-mini-spring**
 
 
 
