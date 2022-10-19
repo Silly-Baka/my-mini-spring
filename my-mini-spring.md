@@ -172,7 +172,7 @@
 
 > 有了**`Resource和ResourceLoader`**，就可以**读取配置文件**，现在可以开始**实现使用配置文件定义Bean的功能**了
 >
-> ![在这里插入图片描述](C:\Users\86176\Desktop\笔记\my-mini-spring.assets\74e8782a6ef54d11927d8d9bd6a6fbca.png)
+> ![在这里插入图片描述](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/74e8782a6ef54d11927d8d9bd6a6fbca.png)
 >
 > ​					**Spring中读取Bean定义的接口BeanDefinitionReader的继承关系**
 >
@@ -182,7 +182,7 @@
 >
 > 所以继承关系如下：
 >
-> ![image-20221016203946158](C:\Users\86176\Desktop\笔记\my-mini-spring.assets\image-20221016203946158.png)
+> ![image-20221016203946158-166619434120210](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221016203946158-166619434120210.png)
 
 #### 7.1 BeanDefinitionReader
 
