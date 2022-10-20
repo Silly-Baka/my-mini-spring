@@ -331,7 +331,7 @@ XML示例
 
 ##### ==refresh（启动上下文）执行流程（ApplicationContext中实例化bean并放入ioc容器的地方）==
 
-![在这里插入图片描述](C:\Users\86176\Desktop\JAVA\my-mini-spring\my-mini-spring.assets\watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2NyaXN0aWFub3ht,size_16,color_FFFFFF,t_70.png)
+![在这里插入图片描述](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/watermark%252Ctype_ZmFuZ3poZW5naGVpdGk%252Cshadow_10%252Ctext_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2NyaXN0aWFub3ht%252Csize_16%252Ccolor_FFFFFF%252Ct_70.png)
 
 1. 创建上下文（**创建内置的beanFactory**，并**加载所有BeanDefinition**） --> 这一部分委托给子类 `AbstractRefreshableApplicationContext` 来进行实现
 
