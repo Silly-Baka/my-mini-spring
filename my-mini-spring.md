@@ -4,7 +4,9 @@
 
 ![https://img-blog.csdnimg.cn/bc9990a8b19544388b6d193b745135a2.png#pic_center](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/bc9990a8b19544388b6d193b745135a2.png)
 
-## 1、简单的IOC容器
+## 1、简单的IOC容器（beanFactory 仅支持创建bean、获取bean）
+
+**当前Bean的生命周期为：获取bean定义 --> 实例化bean --> 装配属性**
 
 ![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/bean-definition-and-bean-definition-registry-16659134397361.png)
 
@@ -97,7 +99,13 @@
 
 > Java的标准`java.net.URL`类和各种URL前缀的标准处理程序无法满足所有对`low-level`资源的访问.
 >
-> 比如:没有标准化的URL实现类用于获取根据`ServletContext`的类路径。并且缺少某些Spring所需要的功能，例如**检测某资源是否存在**等，`java.net.url`只提供了基于标准URL来访问资源的方法**（针对web资源）**，而**不能基于特定的路径来访问特定的资源（无法针对文件资源、类路径资源）**
+> 比如:没有标准化的URL实现类用于获取根据`ServletContext`的类路径。并且缺少某些Spring所需要的功能，例如**检测某资源是否存在**等，`java.net.url`只提供了基于标准URL来访问资源的方法**（实际上只针对网络上发布的web资源）**，而**不能基于特定的路径来访问特定的资源（无法针对文件资源、类路径资源）**
+>
+> Java SE对于资源定位提供了URL这一类，即Uniform Resource Locator，虽然号称统一资源定位，实际上只对通过网络发布的资源提供查找和定位功能；
+>
+> 实际上，**资源这个词的范围比较广义，资源可以任何形式存在**，如以二进制对象形式存在、以字节流形式存在、以文件形式存在等；而且，资源也可以存在于任何场所，如存在于文件系统、存在于Java应用的Classpath中，甚至存在于URL可以定位的地方。
+>
+> 其次，该类的功能职责划分不清，资源的查找和表示没有清晰的界限；当前情况是，资源查找后返回的形式多种多样，没有一个统一的抽象。**理想情况下，资源查找完成后，返回给客户端的应该是一个统一的资源抽象接口，**客户端要对资源进行什么样的处理，应该**由资源抽象接口来界定，而不应该成为资源的定位者和查找者同时要关心的事情**。
 >
 > ​	**`Resource接口`**是**Spring中所有资源的抽象和访问接口**，用于**解决URL接口的不足**
 >
@@ -130,7 +138,9 @@
 >
 > ![image-20221016120015378](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221016120015378-166589281704010.png?token=ATHSE3YBY3CS27JWJTM2PATDJO7PQ)
 >
->   **`ResourceLoader接口是资源加载定位策略的抽象，根据上下文使用策略模式获取对应的Resource实现类对象`**
+> 资源是有了，但**如何去查找和定位这些资源，则就是ResourceLoader的职责所在**了。
+>
+> **`ResourceLoader接口是资源查找定位策略的统一抽象`**，具体的资源查找定位策略则由相应的ResourceLoader实现类给出
 
 #####  1、DefaultResourceLoader
 
@@ -138,7 +148,11 @@
 
 
 
-### 6、更新BeanFactory的继承关系
+
+
+## 2、复杂的IOC容器（从BeanFactory过度到ApplicationContext）
+
+### 1、更新BeanFactory的继承关系
 
 ![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/xml-file-define-bean-16659210080936.png)
 
@@ -146,29 +160,29 @@
 
 ​											**现继承关系**
 
-#### 6.1 HierarchicalBeanFactory（分层的BeanFactory）
+#### 1.1 HierarchicalBeanFactory（分层的BeanFactory）
 
 > `HierarchicalBeanFactory`为BeanFactory提供了分层的能力，让实现这个接口的BeanFactory之间拥有`层级关系（子级BeanFactory无法获得父级BeanFactory定义的Bean）`，为BeanFactory提供了可以`获取父级BeanFactory`的接口
 
-#### 6.2 ListableBeanFactory（可列表化的BeanFactory）
+#### 1.2 ListableBeanFactory（可列表化的BeanFactory）
 
 > 实现了`ListableBeanFactory`接口的BeanFactory可以`一次性列出所有需要的Bean的信息`，提供了**查询Bean**的能力
 
-#### 6.3 ConfigurableBeanFactory（可配置的BeanFactory）
+#### 1.3 ConfigurableBeanFactory（可配置的BeanFactory）
 
 > `ConfigurableBeanFactory`为BeanFactory提供了多个`配置BeanFactory`的接口，允许框架开发者**对BeanFactory进行自定义配置**
 
-#### 6.4 AutowireCapableBeanFactory（可自动装配的BeanFactory）
+#### 1.4 AutowireCapableBeanFactory（可自动装配的BeanFactory）
 
 > `AutowireCapableBeanFactory`为BeanFactory提供了`自动装配Bean属性`的接口
 
-#### 6.5 ConfigurableListableBeanFactory
+#### 1.5 ConfigurableListableBeanFactory
 
 > `ConfigurableListableBeanFactory`接口**`整合了BeanFactory所需的所有特性`**，同时还**提供了分析和修改Bean的工具，也提供了解决循环依赖的方法（预定义Bean实例）**
 
 
 
-### 7、 读取配置文件的Bean定义
+### 2、 读取配置文件的Bean定义
 
 > 有了**`Resource和ResourceLoader`**，就可以**读取配置文件**，现在可以开始**实现使用配置文件定义Bean的功能**了
 >
@@ -184,7 +198,7 @@
 >
 > ![image-20221016203946158-166619434120210](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221016203946158-166619434120210.png)
 
-#### 7.1 BeanDefinitionReader
+#### 2.1 BeanDefinitionReader
 
 > 流程：
 >
@@ -193,7 +207,7 @@
 > 3. 解析读取到的内容，**转化为BeanDefinition**
 > 4. 将BeanDefinition **注册到BeanDefinitionRegistry** 中  `（需要BeanDefinitionRegistry）`
 
-#### 7.2 XMLBeanDefinitionReader（实现读取XML文件中bean的逻辑）
+#### 2.2 XMLBeanDefinitionReader（实现读取XML文件中bean的逻辑）
 
 XML示例
 
@@ -214,7 +228,7 @@ XML示例
 
 
 
-### ==8、BeanFactoryPostProcessor 和 BeanPostProcessor（后置处理器）==
+### ==3、BeanFactoryPostProcessor 和 BeanPostProcessor（后置处理器）==
 
 > **BeanFactoryPostProcessor **是Spring提供的**容器拓展机制**，SpringIOC容器允许 **BeanFactoryPostProcessor** 在`**beanDefinition加载完之后，bean被实例化之前**，修改它的beanDefinition（方便拓展）`
 >
@@ -278,3 +292,81 @@ XML示例
 > ```
 >
 > 
+
+
+
+### ==4、 ApplicationContext（代表上下文的抽象接口，提供了获取上下文信息的基本接口）==
+
+> **ApplicationContext**是Spring提供的**比BeanFactory更为先进的IoC容器实现**，ApplicationContext除了**拥有BeanFactory支持的所有功能之外**，还进一步扩展了基本容器的功能，**包括BeanFactoryPostProcessor、 BeanPostProcessor以及其他特殊类型bean的自动识别`（在BeanFactory中需要手动注册，在ApplicationContext中实现了自动注册）`**、**容器启动后bean实例的自动初始化`（在BeanFactory采用的是懒汉式加载）`**、**国际化的信息支持**、**容器内事件发布**等。
+>
+> **`本质上：ApplicationContext只是内置了一个BeanFactory，所以拥有BeanFactory的所有功能。同时ApplicationContext还实现了其他接口 拓展了其他功能。`**
+>
+> 
+>
+> **继承关系：**
+>
+> ![在这里插入图片描述](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/e1cc6cf9e3f14c76b7a8898eb29cc7f7.png)
+
+
+
+#### 4.1 ConfigurableApplicationContext（可配置的上下文）
+
+> **继承关系：**
+>
+> ![image-20221020161646845](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221020161646845.png)
+>
+> **ConfigurableApplicationContext** 提供了`对ApplicationContext进行配置的接口`，同时提供了**`管理ApplicationContext的生命周期（启动以及销毁）的接口`**，是**Spring中许多实现类的SPI接口**
+
+
+
+#### 4.2 AbstractApplicationContext
+
+> **继承关系：**
+>
+> ![image-20210414143029532](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/bfc38eaeff6de47ab1f9be89787a1d7a.png)
+>
+> **AbstractApplicationContext** 是 **ApplicationContext接口**的抽象实现，简单地实现了其中的通用上下文方法。
+>
+> 同时使用`模板方法设计模式`，定义了某些方法的抽象逻辑，其中`最重要的是refresh()方法`，**具体逻辑由其子类来实现**
+
+##### ==refresh（启动上下文）执行流程（ApplicationContext中实例化bean并放入ioc容器的地方）==
+
+![在这里插入图片描述](C:\Users\86176\Desktop\JAVA\my-mini-spring\my-mini-spring.assets\watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2NyaXN0aWFub3ht,size_16,color_FFFFFF,t_70.png)
+
+1. 创建上下文（**创建内置的beanFactory**，并**加载所有BeanDefinition**） --> 这一部分委托给子类 `AbstractRefreshableApplicationContext` 来进行实现
+
+2. 在bean实例化之前，**调用BeanFactoryPostProcessor** **（执行修改beanDefinition的逻辑）**
+
+   `疑问1：这里的BeanFactoryPostProcessor是什么时候注册进去的？（在前面一个步骤加载bean定义的时候）`
+
+3. 在bean实例化之前，**自动注册 BeanPostProcessor** **（注册拓展组件）**
+
+   `疑问2：BeanPostProcessor算是一个特殊bean，那么它们的生命周期与普通bean相同吗？（出生比普通bean早一点，因为要负责其他bean实例化的前后置处理，但其他周期都一样）`
+
+4. 自动注册其他拓展组件....
+
+5. **实例化所有的bean**
+
+6. 上下文启动完毕
+
+
+
+#### 4.3 AbstractRefreshableApplicationContext（实现了refreshBeanFactory的实际逻辑）
+
+##### **refreshBeanFactory执行流程**
+
+1. 判断内置的BeanFactory是否为空
+2. 若不为空，则**清空内置BeanFactory的所有bean实例**，并**关闭内置的BeanFactory**
+3. 创建新的BeanFactory（其父级BeanFactory为当前的父级上下文的内置BeanFactory）
+4. **加载所有beanDefinition**进新的BeanFactory（`loadBeanDefinitions(beanFactory) 交给子类AbstractXmlApplicationContext 来进行实现`）
+
+
+
+#### 4.4 AbstractXmlApplicationContext（实现了loadBeanDefinitions的实际逻辑）
+
+![image-20221020204317054](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221020204317054.png)
+
+**FileSystemXMLApplicationContext（提供给用户使用的实现类）**：按照文件系统的路径来读取XML配置文件
+
+**ClassPathXMLApplicationContext（提供给用户使用的实现类）**：按照类的根路径来读取XML配置文件
+

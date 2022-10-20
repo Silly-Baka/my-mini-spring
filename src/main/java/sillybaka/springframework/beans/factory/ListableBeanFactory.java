@@ -11,4 +11,11 @@ import sillybaka.springframework.beans.factory.BeanFactory;
  **/
 public interface ListableBeanFactory extends BeanFactory {
 
+    /**
+     * 根据bean的类型 获取bean名字列表
+     * @param type bean类型
+     * @param includeNonSingleton 是否包含非单例的bean
+     * @return 符合条件的beanName列表
+     */
+    String[] getBeanNamesForType(Class<?> type, boolean includeNonSingleton);
 }
