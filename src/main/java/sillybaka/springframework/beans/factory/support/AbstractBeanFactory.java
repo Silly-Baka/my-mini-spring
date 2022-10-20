@@ -5,6 +5,7 @@ import sillybaka.springframework.beans.factory.config.BeanDefinition;
 import sillybaka.springframework.beans.factory.ConfigurableBeanFactory;
 import sillybaka.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import sillybaka.springframework.beans.factory.config.BeanPostProcessor;
+import sillybaka.springframework.exception.BeansException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,6 +60,12 @@ public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry i
 
     @Override
     public void addBeanPostProcessor(BeanPostProcessor beanPostProcessor) {
+        if(beanPostProcessor == null){
+            throw new BeansException("添加的beanPostProcessor不能为空");
+        }
+        // 把旧的删掉
+        beanPostProcessors.remove(beanPostProcessor);
+        // 添加新的
         beanPostProcessors.add(beanPostProcessor);
     }
 

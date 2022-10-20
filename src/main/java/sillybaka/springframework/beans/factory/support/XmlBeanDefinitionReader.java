@@ -50,6 +50,13 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
         }
     }
 
+    @Override
+    public void loadBeanDefinitions(Resource[] resources) {
+        for (Resource resource : resources) {
+            loadBeanDefinitions(resource);
+        }
+    }
+
     /**
      * 读取XML配置文件中的BeanDefinitions
      * @param inputStream xml文件的二进制流

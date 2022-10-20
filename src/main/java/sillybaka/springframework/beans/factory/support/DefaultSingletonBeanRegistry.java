@@ -3,8 +3,8 @@ package sillybaka.springframework.beans.factory.support;
 import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Date: 2022/10/11
@@ -16,26 +16,26 @@ import java.util.Map;
 @Slf4j
 public class DefaultSingletonBeanRegistry implements SingletonBeanRegistry {
 
-    private static final Map<String,Object> BEANS_REGISTRY_MAP = new HashMap<>();
+    private final Map<String,Object> beansRegistryMap = new ConcurrentHashMap<>();
 
-    private static final Map<Class<?>,String> BEAN_NAME_MAP = new HashMap<>();
+    private final Map<Class<?>,String> beanNamesMap = new ConcurrentHashMap<>();
 
     @Override
     public void registerBean(String beanName, Object bean) {
-        if(BEANS_REGISTRY_MAP.containsKey(beanName)){
+        if(beansRegistryMap.containsKey(beanName)){
             throw new IllegalArgumentException("注册表中已存在同名的bean，注册失败");
         }
-        BEAN_NAME_MAP.putIfAbsent(bean.getClass(),beanName);
-        BEANS_REGISTRY_MAP.putIfAbsent(beanName,bean);
+        beanNamesMap.putIfAbsent(bean.getClass(),beanName);
+        beansRegistryMap.putIfAbsent(beanName,bean);
     }
 
     @Override
     public Object getSingletonBean(Class<?> beanClass) {
-        String beanName = BEAN_NAME_MAP.get(beanClass);
+        String beanName = beanNamesMap.get(beanClass);
         if(StrUtil.isBlank(beanName)){
             throw new IllegalArgumentException("不存在该类型的bean");
         }
-        Object bean = BEANS_REGISTRY_MAP.get(beanName);
+        Object bean = beansRegistryMap.get(beanName);
         if(bean == null){
             throw new IllegalArgumentException("不存在该类型的bean");
         }
@@ -50,6 +50,12 @@ public class DefaultSingletonBeanRegistry implements SingletonBeanRegistry {
 //            throw new IllegalArgumentException("不存在该类型的bean");
 //        }
 
-        return BEANS_REGISTRY_MAP.get(beanName);
+        return beansRegistryMap.get(beanName);
+    }
+
+    @Override
+    public void destroySingletonBeans() {
+        beansRegistryMap.clear();
+        beanNamesMap.clear();
     }
 }

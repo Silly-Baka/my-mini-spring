@@ -40,5 +40,15 @@ public interface ConfigurableBeanFactory extends BeanFactory, SingletonBeanRegis
      */
     void addBeanFactoryPostProcessor(BeanFactoryPostProcessor beanFactoryPostProcessor);
 
+    /**
+     * 摧毁当前BeanFactory的所有bean
+     */
+    void destroyBeans();
+
+    /**
+     * 预实例化所有的bean
+     */
+    void preInitiateSingletons();
+
 
 }
