@@ -1,13 +1,13 @@
 package sillybaka.springframework.context;
 
 /**
+ * 提供了配置ApplicationContext的接口，是拥有完整生命周期的最底层可用的ApplicationContext
+ * 封装了ApplicationContext的生命周期，提供启动及关闭上下文等接口
+ *  todo 后期将变为一个SPI接口
  * Date: 2022/10/20
  * Time: 15:40
  *
  * @Author SillyBaka
- * Description：提供了配置ApplicationContext的接口
- *             封装了ApplicationContext的生命周期，提供启动及关闭上下文等接口
- *            todo 后期将变为一个SPI接口
  **/
 public interface ConfigurableApplicationContext extends ApplicationContext{
 

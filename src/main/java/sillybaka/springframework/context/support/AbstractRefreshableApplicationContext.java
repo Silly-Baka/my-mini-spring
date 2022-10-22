@@ -20,14 +20,13 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
         // 如果内置BeanFactory已被创建 则注销该容器的所有bean 并且关闭该容器 重开一个新的
         if(this.beanFactory != null){
             this.beanFactory.destroySingletons();
-            this.beanFactory = null;
+            closeBeanFactory();
         }
         // 创建一个新的BeanFactory
         DefaultListableBeanFactory beanFactory = createBeanFactory();
 
-        // 加载所有的beanDefinition  todo 这里是否包含特殊bean？
+        // 加载所有的beanDefinition  todo 这里是否包含特殊bean？不包含
         loadBeanDefinitions(beanFactory);
-
 
         this.beanFactory = beanFactory;
     }
