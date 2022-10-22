@@ -1,8 +1,13 @@
 package sillybaka.springframework.beans.factory.support;
 
+import cn.hutool.core.util.ClassUtil;
+import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
 import sillybaka.springframework.beans.factory.AutowireCapableBeanFactory;
+import sillybaka.springframework.beans.factory.DisposableBean;
+import sillybaka.springframework.beans.factory.InitializingBean;
 import sillybaka.springframework.beans.factory.config.*;
+import sillybaka.springframework.exception.BeansException;
 import sillybaka.springframework.utils.PropertyUtils;
 
 import java.beans.PropertyDescriptor;
@@ -39,7 +44,14 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
         // 自动装配属性
         autoWirePropertyValues(beanName,beanInstance,beanDefinition);
         // 执行bean的初始化方法
-        beanInstance = initializeBean(beanName,beanInstance,beanDefinition);
+        try {
+            beanInstance = initializeBean(beanName,beanInstance,beanDefinition);
+        } catch (InvocationTargetException | IllegalAccessException e) {
+            throw new BeansException("bean initialize error",e);
+        }
+
+        // 检查当前bean是否有自定义的destroy方法，若有则需要注册进注册表
+        registerDisposableBeanIfNecessary(beanName,beanInstance,beanDefinition);
 
         return beanInstance;
     }
@@ -94,7 +106,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
                     setterMethod.invoke(existingBean,innerBean);
                 }else {
                 // 普通属性 直接使用Setter方法注入
-                    setterMethod.invoke(existingBean, propertyValue);
+                    //todo 需要一个类型转换适配器，否则任何propertyValue都是String类型的
+                    setterMethod.invoke(existingBean,
+                            PropertyUtils.propertyValueTypeConversion((String)propertyValue,propertyType));
                 }
 
             } catch (InvocationTargetException | IllegalAccessException e) {
@@ -106,12 +120,12 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
     /**
      * 初始化bean的逻辑方法
      */
-    public <T> T initializeBean(String beanName, T bean, BeanDefinition<T> beanDefinition){
+    public <T> T initializeBean(String beanName, T bean, BeanDefinition<T> beanDefinition) throws InvocationTargetException, IllegalAccessException {
 
         // 初始化之前执行后置处理器
         T wrappedBean = applyBeanPostProcessorsBeforeInitialization(bean,beanName);
         // 执行自定义初始化方法
-        invokeInitMethods(wrappedBean,beanName);
+        invokeInitMethods(wrappedBean,beanName,beanDefinition);
         // 初始化之后执行后置处理器
         wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
 
@@ -167,7 +181,34 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
      * @param existingBean 已实例化的bean
      * @param beanName bean名字
      */
-    public <T> void invokeInitMethods(T existingBean, String beanName){
-        //todo  等待实现：1、查看是否实现了initializingBean接口  2、是否有配置init-method
+    public <T> void invokeInitMethods(T existingBean, String beanName, BeanDefinition<T> beanDefinition) throws InvocationTargetException, IllegalAccessException {
+
+        boolean isInitializingBean = (existingBean instanceof InitializingBean &&
+                !"afterPropertiesSet".equals(beanDefinition.getInitMethodName()));
+
+        if(isInitializingBean){
+            ((InitializingBean) existingBean).afterPropertiesSet();
+        }
+
+        String initMethodName = beanDefinition.getInitMethodName();
+        if(StrUtil.isNotBlank(initMethodName)){
+            Method initMethod = ClassUtil.getPublicMethod(existingBean.getClass(), initMethodName);
+            if(initMethod == null){
+                throw new BeansException("the bean named [" + beanName + "] specify initialization method ["+ initMethodName +"] does not exist");
+            }
+            initMethod.invoke(existingBean);
+        }
     }
+
+    /**
+     * 判断bean是否实现了DisposableBean接口 或者指定了destroy()方法，若是则注册进注册表中
+     */
+    public <T> void registerDisposableBeanIfNecessary(String beanName, T bean, BeanDefinition<T> beanDefinition){
+
+        // 当bean实现了DisposableBean接口 或者指定了destroy()方法时
+        if(bean instanceof DisposableBean || StrUtil.isNotBlank(beanDefinition.getDestroyMethodName())){
+            registerDisposableBean(beanName,new DisposableBeanAdapter(beanName,bean,beanDefinition));
+        }
+    }
+
 }
