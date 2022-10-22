@@ -48,7 +48,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
                 doLoadBeanDefinitions(inputStream);
             }
         } catch (IOException e) {
-            throw new BeansException("");
+            throw new BeansException("加载Bean定义失败，找不到该资源 [" + resource.getURI() +"]",e);
         }
     }
 

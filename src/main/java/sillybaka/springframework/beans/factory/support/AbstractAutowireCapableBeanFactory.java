@@ -3,9 +3,7 @@ package sillybaka.springframework.beans.factory.support;
 import cn.hutool.core.util.ClassUtil;
 import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
-import sillybaka.springframework.beans.factory.AutowireCapableBeanFactory;
-import sillybaka.springframework.beans.factory.DisposableBean;
-import sillybaka.springframework.beans.factory.InitializingBean;
+import sillybaka.springframework.beans.factory.*;
 import sillybaka.springframework.beans.factory.config.*;
 import sillybaka.springframework.exception.BeansException;
 import sillybaka.springframework.utils.PropertyUtils;
@@ -122,6 +120,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
      */
     public <T> T initializeBean(String beanName, T bean, BeanDefinition<T> beanDefinition) throws InvocationTargetException, IllegalAccessException {
 
+        // 回调Aware接口的方法
+        invokeAwareMethods(beanName,bean);
         // 初始化之前执行后置处理器
         T wrappedBean = applyBeanPostProcessorsBeforeInitialization(bean,beanName);
         // 执行自定义初始化方法
@@ -130,6 +130,20 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
         wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
 
         return wrappedBean;
+    }
+
+    /**
+     * 检查指定Bean是否实现了Aware接口，并回调其方法
+     */
+    private void invokeAwareMethods(String beanName, Object bean) {
+        if(bean instanceof Aware){
+            if(bean instanceof BeanFactoryAware){
+                ((BeanFactoryAware) bean).setBeanFactory(this);
+            }
+            if(bean instanceof BeanNameAware){
+                ((BeanNameAware) bean).setBeanName(beanName);
+            }
+        }
     }
 
     /**

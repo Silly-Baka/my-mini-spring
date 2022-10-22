@@ -150,9 +150,9 @@
 
 
 
-## 2、复杂的IOC容器（从BeanFactory过度到ApplicationContext）
 
-### 1、更新BeanFactory的继承关系
+
+### 6、更新BeanFactory的继承关系
 
 ![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/xml-file-define-bean-16659210080936.png)
 
@@ -160,29 +160,29 @@
 
 ​											**现继承关系**
 
-#### 1.1 HierarchicalBeanFactory（分层的BeanFactory）
+#### 6.1 HierarchicalBeanFactory（分层的BeanFactory）
 
 > `HierarchicalBeanFactory`为BeanFactory提供了分层的能力，让实现这个接口的BeanFactory之间拥有`层级关系（子级BeanFactory无法获得父级BeanFactory定义的Bean）`，为BeanFactory提供了可以`获取父级BeanFactory`的接口
 
-#### 1.2 ListableBeanFactory（可列表化的BeanFactory）
+#### 6.2 ListableBeanFactory（可列表化的BeanFactory）
 
 > 实现了`ListableBeanFactory`接口的BeanFactory可以`一次性列出所有需要的Bean的信息`，提供了**查询Bean**的能力
 
-#### 1.3 ConfigurableBeanFactory（可配置的BeanFactory）
+#### 6.3 ConfigurableBeanFactory（可配置的BeanFactory）
 
 > `ConfigurableBeanFactory`为BeanFactory提供了多个`配置BeanFactory`的接口，允许框架开发者**对BeanFactory进行自定义配置**
 
-#### 1.4 AutowireCapableBeanFactory（可自动装配的BeanFactory）
+#### 6.4 AutowireCapableBeanFactory（可自动装配的BeanFactory）
 
 > `AutowireCapableBeanFactory`为BeanFactory提供了`自动装配Bean属性`的接口
 
-#### 1.5 ConfigurableListableBeanFactory
+#### 6.5 ConfigurableListableBeanFactory
 
 > `ConfigurableListableBeanFactory`接口**`整合了BeanFactory所需的所有特性`**，同时还**提供了分析和修改Bean的工具，也提供了解决循环依赖的方法（预定义Bean实例）**
 
 
 
-### 2、 读取配置文件的Bean定义
+### 7、 读取配置文件的Bean定义
 
 > 有了**`Resource和ResourceLoader`**，就可以**读取配置文件**，现在可以开始**实现使用配置文件定义Bean的功能**了
 >
@@ -198,7 +198,7 @@
 >
 > ![image-20221016203946158-166619434120210](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221016203946158-166619434120210.png)
 
-#### 2.1 BeanDefinitionReader
+#### 7.1 BeanDefinitionReader
 
 > 流程：
 >
@@ -207,7 +207,7 @@
 > 3. 解析读取到的内容，**转化为BeanDefinition**
 > 4. 将BeanDefinition **注册到BeanDefinitionRegistry** 中  `（需要BeanDefinitionRegistry）`
 
-#### 2.2 XMLBeanDefinitionReader（实现读取XML文件中bean的逻辑）
+#### 7.2 XMLBeanDefinitionReader（实现读取XML文件中bean的逻辑）
 
 XML示例
 
@@ -226,9 +226,9 @@ XML示例
 
 
 
+## 2、复杂的IOC容器（从BeanFactory过度到ApplicationContext）
 
-
-### ==3、BeanFactoryPostProcessor 和 BeanPostProcessor（后置处理器）==
+### ==1、BeanFactoryPostProcessor 和 BeanPostProcessor（后置处理器）==
 
 > **BeanFactoryPostProcessor **是Spring提供的**容器拓展机制**，SpringIOC容器允许 **BeanFactoryPostProcessor** 在`**beanDefinition加载完之后，bean被实例化之前**，修改它的beanDefinition（方便拓展）`
 >
@@ -295,7 +295,7 @@ XML示例
 
 
 
-### ==4、 ApplicationContext（代表上下文的抽象接口，提供了获取上下文信息的基本接口）==
+### ==2、 ApplicationContext（代表上下文的抽象接口，提供了获取上下文信息的基本接口）==
 
 `BeanFactory是spring的基础设施，面向spring本身；而ApplicationContext面向spring的使用者，应用场合使用ApplicationContext。`
 
@@ -311,7 +311,7 @@ XML示例
 
 
 
-#### 4.1 ConfigurableApplicationContext（可配置的上下文）
+#### 2.1 ConfigurableApplicationContext（可配置的上下文）
 
 > **继承关系：**
 >
@@ -321,7 +321,7 @@ XML示例
 
 
 
-#### 4.2 AbstractApplicationContext
+#### 2.2 AbstractApplicationContext
 
 > **继承关系：**
 >
@@ -339,7 +339,7 @@ XML示例
 
 2. 在bean实例化之前，**调用BeanFactoryPostProcessor** **（执行修改beanDefinition的逻辑）**
 
-   `疑问1：这里的BeanFactoryPostProcessor是什么时候注册进去的？（在前面一个步骤加载bean定义的时候）`
+   `疑问1：这里的BeanFactoryPostProcessor是什么时候注册进去的？（在前面一个步骤加载bean定义的时候？）`
 
 3. 在bean实例化之前，**自动注册 BeanPostProcessor** **（注册拓展组件）**
 
@@ -359,7 +359,7 @@ XML示例
 
 
 
-#### 4.3 AbstractRefreshableApplicationContext（实现了refreshBeanFactory的实际逻辑）
+#### 2.3 AbstractRefreshableApplicationContext（实现了refreshBeanFactory的实际逻辑）
 
 ##### **refreshBeanFactory执行流程**
 
@@ -370,7 +370,7 @@ XML示例
 
 
 
-#### 4.4 AbstractXmlApplicationContext（实现了loadBeanDefinitions的实际逻辑）
+#### 2.4 AbstractXmlApplicationContext（实现了loadBeanDefinitions的实际逻辑）
 
 ![image-20221020204317054](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221020204317054.png)
 
@@ -382,7 +382,7 @@ XML示例
 
 
 
-### 5、bean的初始化以及销毁
+### 3、bean的初始化以及销毁
 
 > 在前文中提到了，bean在实例化、自动装配属性后还需要进行**初始化**，`1、那么用户要如何定义初始化方法，并且让Spring执行呢？`
 >
@@ -612,8 +612,8 @@ public void destroy() {
 > 通过看源码可以知道，**在Spring中销毁bean的方式有四种:**
 >
 > - 实现了**DisposableBean接口**，并且**实现了destroy()**方法
-> - 实现了**AutoCloseable接口**，并且**指定了自动关闭执行的方法，且该方法名为destroy**()
 > - 在xml配置文件中的**bean定义**，指定了**destroy-method**
+> - 实现了**AutoCloseable接口**，并且**指定了自动关闭执行的方法，且该方法名为destroy**()
 > - 定义**DestructionAwareBeanPostProcessor**，用于在外部控制（拓展）bean的destroy
 >
 > **在这里也只实现前面两种，第三种后续再实现**
@@ -663,4 +663,25 @@ Spring中的xml格式
 
 
 
-#### 5、抽象出AbstractBean（需要实现管理bean周期的接口）
+#### 
+
+### 4、Aware接口
+
+> Aware-意识到、知道的、察觉到的，`Aware接口`是Spring中`用于标识的接口`，实现了该接口的类可以获得`感知Spring内部容器`的能力。
+>
+> 比如说`BeanFactoryAware`和`ApplicationContextAware`接口，实现了这两个接口的Bean可以分别`感知到它所属的BeanFactory和ApplicationContext`（即获得这些对象），进而使用它们所拥有的功能。
+>
+> 有时候你的Bean需要**通过Spring来获取某些东西**（**以Bean为主动**，而不是我们程序员），那就需要实现这个接口
+
+#### 4.1 BeanFactoryAware（使Bean能感知到其所属的BeanFactory）
+
+这里的回调应该发生在`Bean实例化之后（要先有对象才能回调其函数）`，`Bean初始化之前（因为初始化的逻辑中可能会使用到）`
+
+#### 4.2 ApplicationContextAware（使Bean能感知到其所属的ApplicationContext）
+
+这里的回调也应该发生在`Bean实例化之后（要先有对象才能回调其函数）`，`Bean初始化之前（因为初始化的逻辑中可能会使用到）`，但由于创建是在内置的BeanFactory中进行的，而`BeanFactory无法感知到其上下文`（也可以设计成可感知），而ApplicationContext`在Bean实例化之前会自动注册BeanPostProcessor`，所以可以在注册BeanPostProcessor时将上下文记录。在**调用BeanPostProcessor时再回调注入到Bean中**
+
+#### 4.3 当前Bean的生命周期
+
+![img](https://github.com/DerekYRC/mini-spring/raw/main/assets/aware-interface.png)
+
