@@ -2,8 +2,10 @@ package sillybaka.springframework.beans.factory.support;
 
 import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
+import sillybaka.springframework.beans.factory.DisposableBean;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -16,17 +18,19 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class DefaultSingletonBeanRegistry implements SingletonBeanRegistry {
 
-    private final Map<String,Object> beansRegistryMap = new ConcurrentHashMap<>();
+    private final Map<String,Object> singletonObjects = new ConcurrentHashMap<>();
 
     private final Map<Class<?>,String> beanNamesMap = new ConcurrentHashMap<>();
 
+    private final Map<String,Object> disposableBeans = new ConcurrentHashMap<>();
+
     @Override
     public void registerBean(String beanName, Object bean) {
-        if(beansRegistryMap.containsKey(beanName)){
+        if(singletonObjects.containsKey(beanName)){
             throw new IllegalArgumentException("注册表中已存在同名的bean，注册失败");
         }
         beanNamesMap.putIfAbsent(bean.getClass(),beanName);
-        beansRegistryMap.putIfAbsent(beanName,bean);
+        singletonObjects.putIfAbsent(beanName,bean);
     }
 
     @Override
@@ -35,7 +39,7 @@ public class DefaultSingletonBeanRegistry implements SingletonBeanRegistry {
         if(StrUtil.isBlank(beanName)){
             throw new IllegalArgumentException("不存在该类型的bean");
         }
-        Object bean = beansRegistryMap.get(beanName);
+        Object bean = singletonObjects.get(beanName);
         if(bean == null){
             throw new IllegalArgumentException("不存在该类型的bean");
         }
@@ -50,12 +54,25 @@ public class DefaultSingletonBeanRegistry implements SingletonBeanRegistry {
 //            throw new IllegalArgumentException("不存在该类型的bean");
 //        }
 
-        return beansRegistryMap.get(beanName);
+        return singletonObjects.get(beanName);
     }
 
-    @Override
-    public void destroySingletonBeans() {
-        beansRegistryMap.clear();
+
+    public void destroySingletons() {
+        // 执行所有bean的自定义destroy方法
+        Set<String> disposableBeanNames = disposableBeans.keySet();
+        for (String disposableBeanName : disposableBeanNames) {
+            ((DisposableBean) disposableBeans.get(disposableBeanName)).destroy();
+            disposableBeans.remove(disposableBeanName);
+        }
+        // 清除缓存
+        singletonObjects.clear();
         beanNamesMap.clear();
+    }
+
+    public void registerDisposableBean(String beanName,Object bean){
+        synchronized (this.disposableBeans){
+            this.disposableBeans.putIfAbsent(beanName,bean);
+        }
     }
 }

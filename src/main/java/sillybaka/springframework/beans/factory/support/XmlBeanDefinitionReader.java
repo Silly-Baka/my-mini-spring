@@ -34,6 +34,8 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
     public static final String CLASS_ATTRIBUTE = "class";
     public static final String VALUE_ATTRIBUTE = "value";
     public static final String REF_ATTRIBUTE = "ref";
+    public static final String INIT_METHOD_ATTRIBUTE = "init-method";
+    public static final String DESTROY_METHOD_ATTRIBUTE = "destroy-method";
 
     public XmlBeanDefinitionReader(ResourceLoader resourceLoader, BeanDefinitionRegistry beanDefinitionRegistry) {
         super(resourceLoader, beanDefinitionRegistry);
@@ -85,10 +87,12 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
      * @param beanElement bean标签
      */
     public BeanDefinition<?> doLoadBeanDefinition(Element beanElement){
-        //解析bean标签
+        //解析bean标签的属性
         String id = beanElement.getAttribute(ID_ATTRIBUTE);
         String name = beanElement.getAttribute(NAME_ATTRIBUTE);
         String className = beanElement.getAttribute(CLASS_ATTRIBUTE);
+        String initMethodName = beanElement.getAttribute(INIT_METHOD_ATTRIBUTE);
+        String destroyMethodName = beanElement.getAttribute(DESTROY_METHOD_ATTRIBUTE);
 
         Class clazz;
         try {
@@ -167,7 +171,11 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
                 }
             }
         }
+        // 设置bean定义的其他属性
         beanDefinition.setPropertyValues(propertyValues);
+        beanDefinition.setInitMethodName(initMethodName);
+        beanDefinition.setDestroyMethodName(destroyMethodName);
+
         // 将bean定义注册进注册表中
         getBeanDefinitionRegistry().registerBeanDefinition(beanName,beanDefinition);
 

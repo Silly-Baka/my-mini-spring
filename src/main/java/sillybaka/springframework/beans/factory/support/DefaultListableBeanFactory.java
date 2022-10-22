@@ -2,13 +2,10 @@ package sillybaka.springframework.beans.factory.support;
 
 import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.StringUtils;
 import sillybaka.springframework.beans.factory.config.BeanDefinition;
 import sillybaka.springframework.beans.factory.ConfigurableListableBeanFactory;
-import sillybaka.springframework.exception.BeansException;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -112,9 +109,9 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
     }
 
     @Override
-    public void destroyBeans() {
+    public void destroySingletons() {
         // 删除注册表中的所有bean实例
-        super.destroySingletonBeans();
+        super.destroySingletons();
         // 删除当前beanFactory中的所有cache
         beanDefinitionMap.clear();
         allBeanNamesByType.clear();

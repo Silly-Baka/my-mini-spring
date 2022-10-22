@@ -18,7 +18,7 @@ import sillybaka.springframework.exception.BeansException;
  **/
 public abstract class AbstractApplicationContext extends DefaultResourceLoader implements ConfigurableApplicationContext {
 
-    //todo 模板方法 只提供了抽象逻辑 具体逻辑由子类实现
+    //todo 模板方法 只提供了抽象逻辑 具体逻辑由子类实现 -- 有待完善
     @Override
     public void refresh() {
         // 启动上下文 创建内置的beanFactory 从xml文件中加载所有的beanDefinition（包括特殊bean）
@@ -34,12 +34,6 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
 
         // 预实例化所有的bean
         beanFactory.preInitiateSingletons();
-
-    }
-
-
-    @Override
-    public void close() {
 
     }
 
@@ -61,7 +55,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
     protected abstract DefaultListableBeanFactory getBeanFactory();
 
     /**
-     * 执行指定BeanFactory的所有后置处理器 todo refresh的时候注册进去的吗 ？
+     * 执行指定BeanFactory的所有后置处理器
      */
     public void invokeBeanFactoryPostProcessors(ConfigurableListableBeanFactory beanFactory){
         String[] postProcessorNames = beanFactory.getBeanNamesForType(BeanFactoryPostProcessor.class, true);
@@ -92,6 +86,30 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
         }
     }
 
+    /**
+     * 模板方法 实际逻辑交给子类实现
+     */
+    @Override
+    public void close() {
+
+        // 先销毁所有的bean实例
+        destroyBeans();
+        // 再关闭内置的BeanFactory
+        closeBeanFactory();
+
+    }
+
+    /**
+     * 销毁所有的bean实例
+     */
+    protected void destroyBeans(){
+        getBeanFactory().destroySingletons();
+    }
+
+    /**
+     * 关闭内置的BeanFactory
+     */
+    protected abstract void closeBeanFactory();
 
     /**
      * 委托给内置BeanFactory处理

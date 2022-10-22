@@ -297,6 +297,8 @@ XML示例
 
 ### ==4、 ApplicationContext（代表上下文的抽象接口，提供了获取上下文信息的基本接口）==
 
+`BeanFactory是spring的基础设施，面向spring本身；而ApplicationContext面向spring的使用者，应用场合使用ApplicationContext。`
+
 > **ApplicationContext**是Spring提供的**比BeanFactory更为先进的IoC容器实现**，ApplicationContext除了**拥有BeanFactory支持的所有功能之外**，还进一步扩展了基本容器的功能，**包括BeanFactoryPostProcessor、 BeanPostProcessor以及其他特殊类型bean的自动识别`（在BeanFactory中需要手动注册，在ApplicationContext中实现了自动注册）`**、**容器启动后bean实例的自动初始化`（在BeanFactory采用的是懒汉式加载）`**、**国际化的信息支持**、**容器内事件发布**等。
 >
 > **`本质上：ApplicationContext只是内置了一个BeanFactory，所以拥有BeanFactory的所有功能。同时ApplicationContext还实现了其他接口 拓展了其他功能。`**
@@ -325,13 +327,13 @@ XML示例
 >
 > ![image-20210414143029532](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/bfc38eaeff6de47ab1f9be89787a1d7a.png)
 >
-> **AbstractApplicationContext** 是 **ApplicationContext接口**的抽象实现，简单地实现了其中的通用上下文方法。
+> **AbstractApplicationContext** 是 **ConfigurableApplicationContext接口**的抽象实现，简单地实现了其中的通用上下文方法。
 >
-> 同时使用`模板方法设计模式`，定义了某些方法的抽象逻辑，其中`最重要的是refresh()方法`，**具体逻辑由其子类来实现**
+> 使用`模板方法设计模式`，**定义了ApplicationContext的启动步骤(`refresh()方法`)，但是不提供具体每步的实现，由子类提供。**
 
 ##### ==refresh（启动上下文）执行流程（ApplicationContext中实例化bean并放入ioc容器的地方）==
 
-![在这里插入图片描述](C:\Users\86176\Desktop\JAVA\my-mini-spring\my-mini-spring.assets\watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2NyaXN0aWFub3ht,size_16,color_FFFFFF,t_70.png)
+![refresh流程图](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/refresh%E6%B5%81%E7%A8%8B%E5%9B%BE.png)
 
 1. 创建上下文（**创建内置的beanFactory**，并**加载所有BeanDefinition**） --> 这一部分委托给子类 `AbstractRefreshableApplicationContext` 来进行实现
 
@@ -345,9 +347,15 @@ XML示例
 
 4. 自动注册其他拓展组件....
 
-5. **实例化所有的bean**
+5. **实例化所有的bean --> 按照定义装配属性 --> 前置处理 --> 初始化 --> 后置处理**
 
 6. 上下文启动完毕
+
+##### 当前bean的生命周期
+
+![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/application-context-life-cycle.png)
+
+
 
 
 
@@ -370,3 +378,289 @@ XML示例
 
 **ClassPathXMLApplicationContext（提供给用户使用的实现类）**：按照类的根路径来读取XML配置文件
 
+ 
+
+
+
+### 5、bean的初始化以及销毁
+
+> 在前文中提到了，bean在实例化、自动装配属性后还需要进行**初始化**，`1、那么用户要如何定义初始化方法，并且让Spring执行呢？`
+>
+> 同时，在前文bean的生命周期中，缺少了**bean的销毁**这一过程，`2、简单地销毁bean方法会由spring提供，而用户需要提供自定义的销毁方法。`
+
+#### **1、初始化**
+
+##### 1.1 Spring中初始化bean的几种方式
+
+**Spring中初始化bean逻辑的源码**
+
+```java
+protected void invokeInitMethods(String beanName, Object bean, @Nullable RootBeanDefinition mbd)
+      throws Throwable {
+
+    // 检查当前bean是否实现了InitializingBean接口
+   boolean isInitializingBean = (bean instanceof InitializingBean);
+    
+    // 如果当前bean实现了InitializingBean接口，并且指定的init-method不为afterPropertiesSet
+   if (isInitializingBean && (mbd == null || !mbd.hasAnyExternallyManagedInitMethod("afterPropertiesSet"))) {
+      if (logger.isTraceEnabled()) {
+         logger.trace("Invoking afterPropertiesSet() on bean with name '" + beanName + "'");
+      }
+      if (System.getSecurityManager() != null) {
+         try {
+            AccessController.doPrivileged((PrivilegedExceptionAction<Object>) () -> {
+               ((InitializingBean) bean).afterPropertiesSet();
+               return null;
+            }, getAccessControlContext());
+         }
+         catch (PrivilegedActionException pae) {
+            throw pae.getException();
+         }
+      }
+      else {
+          // 执行bean类实现的 InitializingBean接口的afterPropertiesSet()方法 （自定义初始化方法）
+         ((InitializingBean) bean).afterPropertiesSet();
+      }
+   }
+
+   if (mbd != null && bean.getClass() != NullBean.class) {
+      String initMethodName = mbd.getInitMethodName();
+       // 如果当前bean没有实现InitializingBean接口，但bean定义中指定了init-method，同时也没有外部的初始化方法与init-method的名字相同
+      if (StringUtils.hasLength(initMethodName) &&
+            !(isInitializingBean && "afterPropertiesSet".equals(initMethodName)) &&
+            !mbd.hasAnyExternallyManagedInitMethod(initMethodName)) {
+          // 那么就执行bean定义中指定的初始化方法
+         invokeCustomInitMethod(beanName, bean, mbd);
+      }
+   }
+}
+```
+
+> 通过看源码可以知道，spring初始化bean有以下三种方法（**不可同时执行，以实现InitializingBean接口优先**）：
+>
+> - 实现**InitializingBean接口**，并**实现其afterPropertiesSet（）**方法
+> - 在**bean定义**（xml配置文件）中指定初始化方法，属性为：**init-method**
+> - （此源码中无法看出，源码中说的是外部的初始化方法）在方法上**加注解PostConstruct和PreDestroy**
+>
+> **这里只实现前两种，第三种后面再实现（因为尚未知道原理）**
+
+
+
+##### 1.2 实现初始化bean的前两种方式
+
+- BeanDefinition中需要增加属性**表示初始化方法的名字**
+
+- ```java
+  /**
+   * 对指定bean执行自定义的初始化方法
+   * @param existingBean 已实例化的bean
+   * @param beanName bean名字
+   */
+  public <T> void invokeInitMethods(T existingBean, String beanName, BeanDefinition<T> beanDefinition) throws InvocationTargetException, IllegalAccessException {
+          boolean isInitializingBean = (existingBean instanceof InitializingBean &&
+                  !"afterPropertiesSet".equals(beanDefinition.getInitMethodName()));
+  
+          if(isInitializingBean){
+              ((InitializingBean) existingBean).afterPropertiesSet();
+          }
+  
+          String initMethodName = beanDefinition.getInitMethodName();
+          if(StrUtil.isNotBlank(initMethodName)){
+              Method initMethod = ClassUtil.getPublicMethod(existingBean.getClass(), initMethodName);
+              if(initMethod == null){
+                  throw new BeansException("the bean named [" + beanName + "] specify initialization method ["+ initMethodName +"] does not exist");
+              }
+              initMethod.invoke(existingBean);
+          }
+  }
+  ```
+
+
+
+
+
+#### 2、销毁
+
+##### 2.1 Spring中销毁bean的几种方式
+
+**Spring中销毁bean的源码（和初始化的源码相似）**
+
+**（这里Spring采用了适配器模式，DisposableBeanAdapter适配了`DisposableBean接口`（实现destroy()方法），和`Runnable接口`（`使其可以作为异步线程任务执行destroy()方法`）**
+
+```java
+// BeanFactory中销毁bean调用的方法
+protected void destroyBean(String beanName, Object bean, RootBeanDefinition mbd) {
+    // 创建一次性的bean适配器 --> 用于处理bean的销毁逻辑
+		new DisposableBeanAdapter(
+				bean, beanName, mbd, getBeanPostProcessorCache().destructionAware, getAccessControlContext()).destroy();
+}
+
+public DisposableBeanAdapter(Object bean, String beanName, RootBeanDefinition beanDefinition,
+List<DestructionAwareBeanPostProcessor> postProcessors, @Nullable AccessControlContext acc) {
+
+    Assert.notNull(bean, "Disposable bean must not be null");
+    this.bean = bean;
+    this.beanName = beanName;
+    this.nonPublicAccessAllowed = beanDefinition.isNonPublicAccessAllowed();
+    
+    // 判断传入的bean是否实现了DisposableBean接口、bean定义中有无外部的destroy方法
+    this.invokeDisposableBean = (bean instanceof DisposableBean &&
+                                 !beanDefinition.hasAnyExternallyManagedDestroyMethod(DESTROY_METHOD_NAME));
+
+    // 试着使用bean对象（其实现的接口）和bean定义来推断destroy方法的名字 
+    // --> 其实就是找xml的bean定义中有无指定destroy-method
+    String destroyMethodName = inferDestroyMethodIfNecessary(bean, beanDefinition);
+    
+    // 如果有指定destroy-method 并且没有实现DisposableBean接口、也没有外部的destroy方法
+    if (destroyMethodName != null &&
+        !(this.invokeDisposableBean && DESTROY_METHOD_NAME.equals(destroyMethodName)) &&
+        !beanDefinition.hasAnyExternallyManagedDestroyMethod(destroyMethodName)) {
+
+        // 有无实现AutoCloseable接口，并且看看destroyMethodName是否与自动关闭的方法名字相同
+        this.invokeAutoCloseable = (bean instanceof AutoCloseable && CLOSE_METHOD_NAME.equals(destroyMethodName));
+        .............
+        .............
+            
+        // 最后会将此指定的destroy-method 设置为 destroy()的实际逻辑
+            this.destroyMethod = destroyMethod;
+        }
+    }
+
+	// 加载beanPostProcessors
+    this.beanPostProcessors  = filterPostProcessors(postProcessors, bean);
+    this.acc = acc;
+}
+
+
+// 执行destroy的实际逻辑
+public void destroy() {
+    
+   	// 如果用于Destroy的Processors不为空（即外部的destroy方法），则执行
+    if (!CollectionUtils.isEmpty(this.beanPostProcessors)) {
+        for (DestructionAwareBeanPostProcessor processor : this.beanPostProcessors) {
+            processor.postProcessBeforeDestruction(this.bean, this.beanName);
+        }
+    }
+    // 如果实现了DisposableBean接口 并且bean定义没有外部destroy方法
+    if (this.invokeDisposableBean) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Invoking destroy() on bean with name '" + this.beanName + "'");
+        }
+        try {
+            if (System.getSecurityManager() != null) {
+                AccessController.doPrivileged((PrivilegedExceptionAction<Object>) () -> {
+                    ((DisposableBean) this.bean).destroy();
+                    return null;
+                }, this.acc);
+            }
+            else {
+                // 执行已经实现的DisposableBean接口的destroy方法
+                ((DisposableBean) this.bean).destroy();
+            }
+        }
+        catch (Throwable ex) {
+            String msg = "Invocation of destroy method failed on bean with name '" + this.beanName + "'";
+            if (logger.isDebugEnabled()) {
+                logger.warn(msg, ex);
+            }
+            else {
+                logger.warn(msg + ": " + ex);
+            }
+        }
+    }
+
+    // 实现了AutoCloseable接口 并且自动关闭的方法名为destroy
+    if (this.invokeAutoCloseable) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Invoking close() on bean with name '" + this.beanName + "'");
+        }
+        try {
+            if (System.getSecurityManager() != null) {
+                AccessController.doPrivileged((PrivilegedExceptionAction<Object>) () -> {
+                    ((AutoCloseable) this.bean).close();
+                    return null;
+                }, this.acc);
+            }
+            else {
+                ((AutoCloseable) this.bean).close();
+            }
+        }
+        catch (Throwable ex) {
+            String msg = "Invocation of close method failed on bean with name '" + this.beanName + "'";
+            if (logger.isDebugEnabled()) {
+                logger.warn(msg, ex);
+            }
+            else {
+                logger.warn(msg + ": " + ex);
+            }
+        }
+    }
+    // 否则执行在bean定义中指定的destroy-method
+    else if (this.destroyMethod != null) {
+        invokeCustomDestroyMethod(this.destroyMethod);
+    }
+    // 否则执行在bean定义中指定的destroy-method
+    else if (this.destroyMethodName != null) {
+        Method destroyMethod = determineDestroyMethod(this.destroyMethodName);
+        if (destroyMethod != null) {
+            invokeCustomDestroyMethod(ClassUtils.getInterfaceMethodIfPossible(destroyMethod, this.bean.getClass()));
+        }
+    }
+}
+```
+
+> 通过看源码可以知道，**在Spring中销毁bean的方式有四种:**
+>
+> - 实现了**DisposableBean接口**，并且**实现了destroy()**方法
+> - 实现了**AutoCloseable接口**，并且**指定了自动关闭执行的方法，且该方法名为destroy**()
+> - 在xml配置文件中的**bean定义**，指定了**destroy-method**
+> - 定义**DestructionAwareBeanPostProcessor**，用于在外部控制（拓展）bean的destroy
+>
+> **在这里也只实现前面两种，第三种后续再实现**
+
+##### 2.2 实现destroy bean的前两种方式
+
+在Spring中，`BeanFactory将destroy bean的逻辑全权交给了DisposableBeanAdapter`，这里我也会采用这样的实现
+
+> 在这里需要先思考`一个问题`：`destroyBean的调用时机是什么，由谁来负责调用，由又谁来负责执行实际逻辑呢？`
+>
+> **调用时机**
+>
+> 1. `关闭或者刷新IOC容器时`，需要删除所有的bean
+> 2.  Bean实例`被覆盖或者过期`时
+>
+> **关于DestroyBean的实际逻辑**
+>
+> 在Spring中对destroyBean的调用具有两个层面：
+>
+> 1. IOC容器是`可拓展`的容器（实现了ConfigurableBeanFactory接口） --> 委托`DisposableAdapter`来处理实际的逻辑`（即会判断是否有 自定义的destroy-method 或 使用注解添加的destroy BeanProcessor）`
+> 2. `不可拓展` --> 无法使用自定义的destroy，只能看bean是否`实现了DisposableBean接口`，若实现了则会调用destroy()作为实际逻辑，否则就只是简单地回收内存
+
+> 实际上Spring将这分为了两套操作 **（Spring真的很爱缓存）**
+>
+> 1. 销毁**指定的bean** （**自己传入bean对象**，然后流程和上面两点一样）
+> 2. 销毁**所有的bean原型实例** （在bean注册时，`多创建一个包装了当前bean的DisposableAdapter对象（会自动处理判断destroy方法的所有逻辑），并且加入到特殊的注册表，相当于缓存了对所有bean的判断`，然后在销毁所有bean时，会从特殊注册表中一个个取出，再执行每个bean的destroy逻辑）
+
+
+
+#### 3、修改XmlBeanDefinitionReader的逻辑
+
+Spring中的xml格式
+
+```XML
+<bean class="xxx" init-method="initMethod", destroy-method="destroyMethod"></bean>
+```
+
+所以当前的**XmlBeanDefinitionReader**需要增加对`init-method`、`destroy-method`等属性的判断
+
+ 
+
+#### 4、当前bean的生命周期
+
+
+
+![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/init-and-destroy-method.png)
+
+
+
+#### 5、抽象出AbstractBean（需要实现管理bean周期的接口）

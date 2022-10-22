@@ -78,4 +78,10 @@ public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry i
     public void addBeanFactoryPostProcessor(BeanFactoryPostProcessor beanFactoryPostProcessor) {
         beanFactoryPostProcessors.add(beanFactoryPostProcessor);
     }
+
+    @Override
+    public void destroySingleton(String beanName, Object bean) {
+        // 委托给DisposableBeanAdapter进行处理
+        new DisposableBeanAdapter(beanName,bean,getBeanDefinition(beanName)).destroy();
+    }
 }
