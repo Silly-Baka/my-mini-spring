@@ -13,19 +13,19 @@ public interface SingletonBeanRegistry {
      * @param beanName bean的名字
      * @param bean bean的实例对象
      */
-    void registerBean(String beanName, Object bean);
+    void registerSingleton(String beanName, Object bean);
 
     /**
      * 根据bean的类型来获得单例实例对象
      * @param beanClass bean的类型
      * @return bean的实例
      */
-    Object getSingletonBean(Class<?> beanClass);
+    Object getSingleton(Class<?> beanClass);
 
     /**
      * 根据bean的名字来获得单例实例对象
      * @param beanName bean的名字
      * @return bean的实例
      */
-    Object getSingletonBean(String beanName);
+    Object getSingleton(String beanName);
 }

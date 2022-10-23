@@ -1,6 +1,5 @@
 package sillybaka.springframework.beans.factory;
 
-import sillybaka.springframework.beans.factory.BeanFactory;
 import sillybaka.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import sillybaka.springframework.beans.factory.config.BeanPostProcessor;
 import sillybaka.springframework.beans.factory.support.SingletonBeanRegistry;
@@ -8,13 +7,22 @@ import sillybaka.springframework.beans.factory.support.SingletonBeanRegistry;
 import java.util.List;
 
 /**
+ * Description：提供对BeanFactory进行配置的接口以及属性
  * Date: 2022/10/16
  * Time: 19:36
  *
  * @Author SillyBaka
- * Description：提供对BeanFactory进行配置的接口
  **/
 public interface ConfigurableBeanFactory extends BeanFactory, SingletonBeanRegistry {
+
+    /**
+     * 单例作用域的标识符
+     */
+    String SCOPE_SINGLETON = "singleton";
+    /**
+     * 多例作用域的标识符
+     */
+    String SCOPE_PROTOTYPE = "prototype";
 
     /**
      * 获取当前容器的BeanPostProcessor列表

@@ -19,11 +19,11 @@ import java.io.InputStream;
 import java.util.Locale;
 
 /**
+ * Description：用于从Xml文件中读取Bean定义的读取器
  * Date: 2022/10/16
  * Time: 21:01
  *
  * @Author SillyBaka
- * Description：用于从Xml文件中读取Bean定义的读取器
  **/
 public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
 
@@ -36,6 +36,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
     public static final String REF_ATTRIBUTE = "ref";
     public static final String INIT_METHOD_ATTRIBUTE = "init-method";
     public static final String DESTROY_METHOD_ATTRIBUTE = "destroy-method";
+    public static final String SCOPE_ATTRIBUTE = "scope";
 
     public XmlBeanDefinitionReader(ResourceLoader resourceLoader, BeanDefinitionRegistry beanDefinitionRegistry) {
         super(resourceLoader, beanDefinitionRegistry);
@@ -93,6 +94,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
         String className = beanElement.getAttribute(CLASS_ATTRIBUTE);
         String initMethodName = beanElement.getAttribute(INIT_METHOD_ATTRIBUTE);
         String destroyMethodName = beanElement.getAttribute(DESTROY_METHOD_ATTRIBUTE);
+        String scope = beanElement.getAttribute(SCOPE_ATTRIBUTE);
 
         Class clazz;
         try {
@@ -175,6 +177,10 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
         beanDefinition.setPropertyValues(propertyValues);
         beanDefinition.setInitMethodName(initMethodName);
         beanDefinition.setDestroyMethodName(destroyMethodName);
+
+        // 设置作用域
+        beanDefinition.setSingleton(scope.equals(BeanDefinition.SCOPE_SINGLETON));
+        beanDefinition.setPrototype(scope.equals(BeanDefinition.SCOPE_PROTOTYPE));
 
         // 将bean定义注册进注册表中
         getBeanDefinitionRegistry().registerBeanDefinition(beanName,beanDefinition);

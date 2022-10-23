@@ -25,16 +25,22 @@ public class DefaultSingletonBeanRegistry implements SingletonBeanRegistry {
     private final Map<String,Object> disposableBeans = new ConcurrentHashMap<>();
 
     @Override
-    public void registerBean(String beanName, Object bean) {
-        if(singletonObjects.containsKey(beanName)){
-            throw new IllegalArgumentException("注册表中已存在同名的bean，注册失败");
+    public void registerSingleton(String beanName, Object bean) {
+        synchronized (this.singletonObjects){
+            if(singletonObjects.containsKey(beanName)){
+                throw new IllegalArgumentException("注册表中已存在同名的bean，注册失败");
+            }
+            addSingleton(beanName,bean);
         }
+    }
+
+    protected void addSingleton(String beanName, Object bean){
         beanNamesMap.putIfAbsent(bean.getClass(),beanName);
         singletonObjects.putIfAbsent(beanName,bean);
     }
 
     @Override
-    public Object getSingletonBean(Class<?> beanClass) {
+    public Object getSingleton(Class<?> beanClass) {
         String beanName = beanNamesMap.get(beanClass);
         if(StrUtil.isBlank(beanName)){
             throw new IllegalArgumentException("不存在该类型的bean");
@@ -48,13 +54,10 @@ public class DefaultSingletonBeanRegistry implements SingletonBeanRegistry {
     }
 
     @Override
-    public Object getSingletonBean(String beanName) {
-//        Object bean = BEANS_REGISTRY_MAP.get(beanName);
-//        if(bean == null){
-//            throw new IllegalArgumentException("不存在该类型的bean");
-//        }
-
-        return singletonObjects.get(beanName);
+    public Object getSingleton(String beanName) {
+        synchronized (singletonObjects){
+            return singletonObjects.get(beanName);
+        }
     }
 
 
