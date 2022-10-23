@@ -176,4 +176,17 @@ public class PropertyUtils {
 
         return (T) propertyValue;
     }
+
+    public static void initClazzPropertyMap(Class<?> beanType){
+        synchronized (BEANS_PROPERTY_MAP){
+            if(!BEANS_PROPERTY_MAP.containsKey(beanType)){
+                BEANS_PROPERTY_MAP.putIfAbsent(beanType,new HashMap<>());
+            }
+        }
+        synchronized (BEANS_PROPERTY_TYPE_MAP){
+            if(!BEANS_PROPERTY_TYPE_MAP.containsKey(beanType)){
+                BEANS_PROPERTY_TYPE_MAP.putIfAbsent(beanType,new HashMap<>());
+            }
+        }
+    }
 }

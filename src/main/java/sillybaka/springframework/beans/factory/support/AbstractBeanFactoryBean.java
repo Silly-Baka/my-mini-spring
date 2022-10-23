@@ -1,6 +1,7 @@
 package sillybaka.springframework.beans.factory.support;
 
 import sillybaka.springframework.beans.factory.BeanFactory;
+import sillybaka.springframework.beans.factory.FactoryBean;
 import sillybaka.springframework.beans.factory.config.BeanDefinition;
 import sillybaka.springframework.beans.factory.ConfigurableBeanFactory;
 import sillybaka.springframework.beans.factory.config.BeanFactoryPostProcessor;
@@ -17,7 +18,7 @@ import java.util.List;
  *
  * @Author SillyBaka
  **/
-public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry implements BeanFactory, ConfigurableBeanFactory {
+public abstract class AbstractBeanFactoryBean extends FactoryBeanRegistrySupport implements BeanFactory, ConfigurableBeanFactory {
 
     private final List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
 
@@ -26,32 +27,27 @@ public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry i
     @Override
     public Object getBean(String beanName) {
 
-        Object bean = null;
+        Object beanInstance;
 
         BeanDefinition<?> beanDefinition = getBeanDefinition(beanName);
 
-        // 单例模式
-        if(beanDefinition.isSingleton()){
-            // 先查看缓存中有无该bean
-            bean = getSingleton(beanName);
+        // 在缓存中获取共享的bean实例
+        Object sharedInstance = getSingleton(beanName);
 
-            // 如果bean为空，则说明缓存注册表中没有 需要在工厂中创建一个新的实例
-            if(bean == null){
-                synchronized (AbstractBeanFactory.class){
-                    bean = createBean(beanName, beanDefinition);
-                    addSingleton(beanName,bean);
-                }
+        if(sharedInstance != null){
+            beanInstance = getObjectForBeanInstance(sharedInstance,beanName);
+        }
+        // 否则要准备创建新的bean实例
+        else {
+            beanInstance = createBean(beanName,beanDefinition);
+
+            // 单例 需要缓存
+            if(beanDefinition.isSingleton()){
+                addSingleton(beanName,beanInstance);
             }
-        // 多例bean 创建一个新实例
-        }else if(beanDefinition.isPrototype()){
-            bean = createBean(beanName,beanDefinition);
         }
 
-        if(bean == null){
-            throw new BeansException("The scope of the bean [" + beanName + "] is invalid");
-        }
-
-        return bean;
+        return getObjectForBeanInstance(beanInstance,beanName);
     }
 
     /**
@@ -91,9 +87,36 @@ public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry i
         beanFactoryPostProcessors.add(beanFactoryPostProcessor);
     }
 
-    @Override
-    public void destroySingleton(String beanName, Object bean) {
-        // 委托给DisposableBeanAdapter进行处理
-        new DisposableBeanAdapter(beanName,bean,getBeanDefinition(beanName)).destroy();
+//    @Override
+//    public void destroySingleton(String beanName, Object bean) {
+//        // 委托给DisposableBeanAdapter进行处理
+//        new DisposableBeanAdapter(beanName,bean,getBeanDefinition(beanName)).destroy();
+//    }
+
+    /**
+     * 从bean实例中获取bean
+     * 用于特殊bean的处理（如FactoryBean、prototype作用域的bean等）
+     * @param beanInstance bean实例
+     */
+    protected Object getObjectForBeanInstance(Object beanInstance,String beanName){
+
+        Object instance;
+        // 如果该实例是FactoryBean，则获取内置的bean
+        if(beanInstance instanceof FactoryBean){
+            // 先从缓存中获取
+            Object cacheInstance = getCachedObjectForFactoryBean(beanName);
+            if(cacheInstance != null){
+                return cacheInstance;
+            }
+            // 若缓存中没有
+            FactoryBean<?> factory = (FactoryBean<?>) beanInstance;
+
+            instance = getObjectFromFactoryBean(beanName,factory);
+
+        }else {
+            instance = beanInstance;
+        }
+
+        return instance;
     }
 }

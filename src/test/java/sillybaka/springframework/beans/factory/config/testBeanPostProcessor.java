@@ -1,10 +1,9 @@
 package sillybaka.springframework.beans.factory.config;
 
 import org.junit.Test;
-import sillybaka.springframework.beans.factory.BeanFactory;
 import sillybaka.springframework.beans.factory.support.BeanDefinitionReader;
 import sillybaka.springframework.beans.factory.support.BeanDefinitionRegistry;
-import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactory;
+import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactoryBean;
 import sillybaka.springframework.beans.factory.support.XmlBeanDefinitionReader;
 import sillybaka.springframework.core.io.DefaultResourceLoader;
 import sillybaka.springframework.core.io.ResourceLoader;
@@ -21,13 +20,13 @@ public class testBeanPostProcessor {
     @Test
     public void test(){
         ResourceLoader resourceLoader = new DefaultResourceLoader();
-        BeanDefinitionRegistry beanDefinitionRegistry = new DefaultListableBeanFactory();
+        BeanDefinitionRegistry beanDefinitionRegistry = new DefaultListableBeanFactoryBean();
 
         BeanDefinitionReader reader = new XmlBeanDefinitionReader(resourceLoader,beanDefinitionRegistry);
 
         reader.loadBeanDefinitions("classpath:test2.xml");
 
-        DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
+        DefaultListableBeanFactoryBean beanFactory = new DefaultListableBeanFactoryBean();
         // 给bean工厂添加后置处理器
         BeanPostProcessor beanPostProcessor = new TestBeanPostProcessor();
         beanFactory.addBeanPostProcessor(beanPostProcessor);

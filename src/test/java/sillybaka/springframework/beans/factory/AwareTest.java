@@ -1,8 +1,7 @@
 package sillybaka.springframework.beans.factory;
 
 import org.junit.Test;
-import sillybaka.springframework.beans.factory.BeanFactory;
-import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactory;
+import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactoryBean;
 import sillybaka.springframework.beans.factory.support.XmlBeanDefinitionReader;
 import sillybaka.springframework.context.support.ClassPathXmlApplicationContext;
 import sillybaka.springframework.core.io.DefaultResourceLoader;
@@ -20,7 +19,7 @@ public class AwareTest {
     @Test
     public void testBeanFactoryAware(){
         // 使用BeanFactory测试
-        DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
+        DefaultListableBeanFactoryBean beanFactory = new DefaultListableBeanFactoryBean();
         XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(new DefaultResourceLoader(), beanFactory);
         beanDefinitionReader.loadBeanDefinitions("classpath:testAware.xml");
 

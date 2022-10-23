@@ -4,7 +4,7 @@ import sillybaka.springframework.beans.factory.ConfigurableListableBeanFactory;
 import sillybaka.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import sillybaka.springframework.beans.factory.config.BeanPostProcessor;
 import sillybaka.springframework.beans.factory.support.ApplicationContextAwareProcessor;
-import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactory;
+import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactoryBean;
 import sillybaka.springframework.context.ConfigurableApplicationContext;
 import sillybaka.springframework.core.io.DefaultResourceLoader;
 import sillybaka.springframework.exception.BeansException;
@@ -69,7 +69,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
      * 获取当前上下文的内置BeanFactory
      * 由子类 AbstractRefreshableApplicationContext 实现
      */
-    protected abstract DefaultListableBeanFactory getBeanFactory();
+    protected abstract DefaultListableBeanFactoryBean getBeanFactory();
 
     /**
      * 执行指定BeanFactory的所有后置处理器

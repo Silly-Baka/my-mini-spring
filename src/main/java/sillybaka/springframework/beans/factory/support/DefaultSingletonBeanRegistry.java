@@ -9,11 +9,11 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * Description：Bean注册表的默认实现类
  * Date: 2022/10/11
  * Time: 20:22
  *
  * @Author SillyBaka
- * Description：Bean注册表的默认实现类
  **/
 @Slf4j
 public class DefaultSingletonBeanRegistry implements SingletonBeanRegistry {

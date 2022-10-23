@@ -3,7 +3,7 @@ package sillybaka.springframework.beans.factory;
 import org.junit.Test;
 import sillybaka.springframework.beans.factory.config.*;
 import sillybaka.springframework.beans.factory.support.BeanDefinitionRegistry;
-import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactory;
+import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactoryBean;
 import sillybaka.springframework.utils.PropertyUtils;
 import sillybaka.springframework.entity.Car;
 import sillybaka.springframework.entity.CarRoll;
@@ -36,13 +36,13 @@ public class BeanFactoryTest {
     //todo 2、读取对Bean的定义
         BeanDefinition<Car> carBeanDefinition = new BeanDefinition<>(Car.class, propertyValues);
     //todo 3、将Bean定义注册进注册表
-        BeanDefinitionRegistry definitionRegistry = new DefaultListableBeanFactory();
+        BeanDefinitionRegistry definitionRegistry = new DefaultListableBeanFactoryBean();
         definitionRegistry.registerBeanDefinition("superCar",carBeanDefinition);
     //todo 4、使用xml获取bean的全类名，并将类的所有属性的propertyDescriptor注册到缓存中
 //        PropertyUtils.addPropertyDescriptor(Car.class);
         Map<String, PropertyDescriptor> beanPropertyMap = PropertyUtils.getBeanPropertyMap(Car.class);
         //todo 5、使用BeanFactory创建并获取bean实例
-        BeanFactory beanFactory = new DefaultListableBeanFactory();
+        BeanFactory beanFactory = new DefaultListableBeanFactoryBean();
         Object car = beanFactory.getBean("superCar");
 
         System.out.println(car);
@@ -76,7 +76,7 @@ public class BeanFactoryTest {
         BeanDefinition<Car> beanDefinition = new BeanDefinition<>(Car.class, propertyValues);
 
         // 将bean定义注册进注册表
-        BeanDefinitionRegistry beanDefinitionRegistry = new DefaultListableBeanFactory();
+        BeanDefinitionRegistry beanDefinitionRegistry = new DefaultListableBeanFactoryBean();
         beanDefinitionRegistry.registerBeanDefinition("niubiCar",beanDefinition);
 
         //todo 若有内联bean，则需要手动添加PropertyDescriptor
@@ -88,7 +88,7 @@ public class BeanFactoryTest {
         PropertyUtils.addPropertyDescriptor(Car.class,"carRoll",BeanDefinition.class);
 
         // 创建Bean
-        BeanFactory beanFactory = new DefaultListableBeanFactory();
+        BeanFactory beanFactory = new DefaultListableBeanFactoryBean();
         Object niubiCar = beanFactory.getBean("niubiCar");
 
         System.out.println(niubiCar);
@@ -103,7 +103,7 @@ public class BeanFactoryTest {
 
         BeanDefinition<CarRoll> refBeanDefinition = new BeanDefinition<>(CarRoll.class, refPropertyValues);
         // 将bean定义注册进注册表
-        BeanDefinitionRegistry beanDefinitionRegistry = new DefaultListableBeanFactory();
+        BeanDefinitionRegistry beanDefinitionRegistry = new DefaultListableBeanFactoryBean();
         beanDefinitionRegistry.registerBeanDefinition("carRoll",refBeanDefinition);
 
 
@@ -135,7 +135,7 @@ public class BeanFactoryTest {
         PropertyUtils.addPropertyDescriptor(Car.class,"carRoll", BeanReference.class);
 
         // 创建Bean
-        BeanFactory beanFactory = new DefaultListableBeanFactory();
+        BeanFactory beanFactory = new DefaultListableBeanFactoryBean();
         Object niubiCar = beanFactory.getBean("niubiCar");
 
         System.out.println(niubiCar);

@@ -94,7 +94,12 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
         String className = beanElement.getAttribute(CLASS_ATTRIBUTE);
         String initMethodName = beanElement.getAttribute(INIT_METHOD_ATTRIBUTE);
         String destroyMethodName = beanElement.getAttribute(DESTROY_METHOD_ATTRIBUTE);
+
         String scope = beanElement.getAttribute(SCOPE_ATTRIBUTE);
+        // 如果scope为空 则默认为singleton
+        if(StrUtil.isBlank(scope)){
+            scope = BeanDefinition.SCOPE_SINGLETON;
+        }
 
         Class clazz;
         try {
@@ -106,6 +111,9 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
         // 存放Bean定义
         BeanDefinition<?> beanDefinition = new BeanDefinition<>();
         beanDefinition.setType(clazz);
+
+        PropertyUtils.initClazzPropertyMap(clazz);
+
         PropertyValues propertyValues = new PropertyValues();
 
         // 如果id不为空 则beanName为id
