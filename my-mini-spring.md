@@ -541,7 +541,7 @@ public void destroy() {
             processor.postProcessBeforeDestruction(this.bean, this.beanName);
         }
     }
-    // 如果实现了DisposableBean接口 并且bean定义没有外部destroy方法
+    // 如果实现了DisposableBean接口 并且bean定义指定的destroy方法不叫destroy
     if (this.invokeDisposableBean) {
         if (logger.isTraceEnabled()) {
             logger.trace("Invoking destroy() on bean with name '" + this.beanName + "'");
@@ -618,6 +618,8 @@ public void destroy() {
 >
 > **在这里也只实现前面两种，第三种后续再实现**
 
+##### 
+
 ##### 2.2 实现destroy bean的前两种方式
 
 在Spring中，`BeanFactory将destroy bean的逻辑全权交给了DisposableBeanAdapter`，这里我也会采用这样的实现
@@ -627,21 +629,106 @@ public void destroy() {
 > **调用时机**
 >
 > 1. `关闭或者刷新IOC容器时`，需要删除所有的bean
-> 2.  Bean实例`被覆盖或者过期`时
+> 2. Bean实例`被覆盖或者过期`时
 >
 > **关于DestroyBean的实际逻辑**
 >
-> 在Spring中对destroyBean的调用具有两个层面：
+> IOC容器是`可拓展`的容器（实现了ConfigurableBeanFactory接口） --> 委托`DisposableAdapter`来处理实际的逻辑`（即会判断是否有 自定义的destroy-method 或 使用注解添加的destroy （BeanProcessor））`
 >
-> 1. IOC容器是`可拓展`的容器（实现了ConfigurableBeanFactory接口） --> 委托`DisposableAdapter`来处理实际的逻辑`（即会判断是否有 自定义的destroy-method 或 使用注解添加的destroy BeanProcessor）`
-> 2. `不可拓展` --> 无法使用自定义的destroy，只能看bean是否`实现了DisposableBean接口`，若实现了则会调用destroy()作为实际逻辑，否则就只是简单地回收内存
-
-> 实际上Spring将这分为了两套操作 **（Spring真的很爱缓存）**
+> **实际上Spring中的destroyBean有两套逻辑**
 >
-> 1. 销毁**指定的bean** （**自己传入bean对象**，然后流程和上面两点一样）
-> 2. 销毁**所有的bean原型实例** （在bean注册时，`多创建一个包装了当前bean的DisposableAdapter对象（会自动处理判断destroy方法的所有逻辑），并且加入到特殊的注册表，相当于缓存了对所有bean的判断`，然后在销毁所有bean时，会从特殊注册表中一个个取出，再执行每个bean的destroy逻辑）
-
-
+> 1. `AbstractAutoCapableBeanFactory`中的 **destroyBean**(Object existingBean)`（不用这个方法，这个是AutoCapableBeanFactory提供的接口  --> 几乎不用这个方法）`
+>
+>    传入一个Bean对象，然后`包装成DisposableBeanAdapter`再处理destroy方法
+>
+>    ```java
+>    @Override
+>    public void destroyBean(Object existingBean) {
+>        // 委托给DisposableBeanAdapter进行处理
+>       new DisposableBeanAdapter(
+>             existingBean, getBeanPostProcessorCache().destructionAware, getAccessControlContext()).destroy();
+>    }
+>    ```
+>
+> 2. `DefaultSingletonRegistry`中会有一个特殊的注册表，保存了**所有实现了DisposableBean接口或者bean定义中指定了destroy-method的单例bean包装而成的DisposableAdapter对象（`在Bean注册时注入`，单例bean才会有，相当于缓存了对所有单例bean的destroy判断）**
+>
+>    `DefaultSingletonRegistry`中的`destroySingleton方法`和`destroySingletons方法`，是**`destroyBean`**的模板逻辑`（ConfigurableBeanFactory中定义的接口 --> Spring常用这个）`
+>
+>    ```java
+>    // 销毁指定的单例bean
+>    public void destroySingleton(String beanName) {
+>        
+>        // 删除缓存中的bean
+>        removeSingleton(beanName);
+>    
+>        DisposableBean disposableBean;
+>        
+>        // 从特殊的注册表中取出该bean对应的DisposableAdapter
+>        synchronized (this.disposableBeans) {
+>            disposableBean = (DisposableBean) this.disposableBeans.remove(beanName);
+>        }
+>        
+>       	// 实际destroy逻辑
+>        destroyBean(beanName, disposableBean);
+>    }
+>    
+>    // 销毁所有的单例bean
+>    public void destroySingletons() {
+>        if (logger.isTraceEnabled()) {
+>            logger.trace("Destroying singletons in " + this);
+>        }
+>        synchronized (this.singletonObjects) {
+>            this.singletonsCurrentlyInDestruction = true;
+>        }
+>    
+>        String[] disposableBeanNames;
+>        synchronized (this.disposableBeans) {
+>            disposableBeanNames = StringUtils.toStringArray(this.disposableBeans.keySet());
+>        }
+>        // 倒序取出所有的DisposableAdapter
+>        for (int i = disposableBeanNames.length - 1; i >= 0; i--) {
+>            // 再一个个处理删除单个的逻辑
+>            destroySingleton(disposableBeanNames[i]);
+>        }
+>    
+>      	// 清除所有的缓存
+>        this.containedBeanMap.clear();
+>        this.dependentBeanMap.clear();
+>        this.dependenciesForBeanMap.clear();
+>    
+>        clearSingletonCache();
+>    }
+>    
+>    // 销毁一个bean的实际逻辑
+>    protected void destroyBean(String beanName, @Nullable DisposableBean bean) {
+>    
+>        Set<String> dependencies;
+>        synchronized (this.dependentBeanMap) {
+>            dependencies = this.dependentBeanMap.remove(beanName);
+>        }
+>        if (dependencies != null) {
+>            if (logger.isTraceEnabled()) {
+>                logger.trace("Retrieved dependent beans for bean '" + beanName + "': " + dependencies);
+>            }
+>            // 销毁该bean所有依赖的bean
+>            for (String dependentBeanName : dependencies) {
+>                destroySingleton(dependentBeanName);
+>            }
+>        }
+>    
+>        if (bean != null) {
+>            try {
+>                // 真正执行当前bean的自定义destroy方法
+>                bean.destroy();
+>            }
+>            catch (Throwable ex) {
+>                if (logger.isWarnEnabled()) {
+>                    logger.warn("Destruction of bean with name '" + beanName + "' threw an exception", ex);
+>                }
+>            }
+>        }
+>        ....................
+>    ```
 
 #### 3、修改XmlBeanDefinitionReader的逻辑
 
@@ -662,8 +749,6 @@ Spring中的xml格式
 ![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/init-and-destroy-method.png)
 
 
-
-#### 
 
 ### 4、Aware接口
 
