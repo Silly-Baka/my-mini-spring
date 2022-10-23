@@ -301,7 +301,9 @@ XML示例
 
 > **ApplicationContext**是Spring提供的**比BeanFactory更为先进的IoC容器实现**，ApplicationContext除了**拥有BeanFactory支持的所有功能之外**，还进一步扩展了基本容器的功能，**包括BeanFactoryPostProcessor、 BeanPostProcessor以及其他特殊类型bean的自动识别`（在BeanFactory中需要手动注册，在ApplicationContext中实现了自动注册）`**、**容器启动后bean实例的自动初始化`（在BeanFactory采用的是懒汉式加载）`**、**国际化的信息支持**、**容器内事件发布**等。
 >
-> **`本质上：ApplicationContext只是内置了一个BeanFactory，所以拥有BeanFactory的所有功能。同时ApplicationContext还实现了其他接口 拓展了其他功能。`**
+> **`本质上：ApplicationContext只是内置了一个BeanFactory，所以拥有BeanFactory的所有功能。同时ApplicationContext还实现了其他接口 拓展了其他功能`**
+>
+> **`（比如AbstractApplicationContext这个实现类就实现了刷新上下文的方法 refresh()，里面实现了自动加载所有bean定义、自动注册特殊bean、自动实例化所有bean的逻辑）。`**
 >
 > 
 >
@@ -657,21 +659,21 @@ public void destroy() {
 >    ```java
 >    // 销毁指定的单例bean
 >    public void destroySingleton(String beanName) {
->        
+>           
 >        // 删除缓存中的bean
 >        removeSingleton(beanName);
->    
+>       
 >        DisposableBean disposableBean;
->        
+>           
 >        // 从特殊的注册表中取出该bean对应的DisposableAdapter
 >        synchronized (this.disposableBeans) {
 >            disposableBean = (DisposableBean) this.disposableBeans.remove(beanName);
 >        }
->        
+>           
 >       	// 实际destroy逻辑
 >        destroyBean(beanName, disposableBean);
 >    }
->    
+>       
 >    // 销毁所有的单例bean
 >    public void destroySingletons() {
 >        if (logger.isTraceEnabled()) {
@@ -680,7 +682,7 @@ public void destroy() {
 >        synchronized (this.singletonObjects) {
 >            this.singletonsCurrentlyInDestruction = true;
 >        }
->    
+>       
 >        String[] disposableBeanNames;
 >        synchronized (this.disposableBeans) {
 >            disposableBeanNames = StringUtils.toStringArray(this.disposableBeans.keySet());
@@ -690,18 +692,18 @@ public void destroy() {
 >            // 再一个个处理删除单个的逻辑
 >            destroySingleton(disposableBeanNames[i]);
 >        }
->    
+>       
 >      	// 清除所有的缓存
 >        this.containedBeanMap.clear();
 >        this.dependentBeanMap.clear();
 >        this.dependenciesForBeanMap.clear();
->    
+>       
 >        clearSingletonCache();
 >    }
->    
+>       
 >    // 销毁一个bean的实际逻辑
 >    protected void destroyBean(String beanName, @Nullable DisposableBean bean) {
->    
+>       
 >        Set<String> dependencies;
 >        synchronized (this.dependentBeanMap) {
 >            dependencies = this.dependentBeanMap.remove(beanName);
@@ -715,7 +717,7 @@ public void destroy() {
 >                destroySingleton(dependentBeanName);
 >            }
 >        }
->    
+>       
 >        if (bean != null) {
 >            try {
 >                // 真正执行当前bean的自定义destroy方法
@@ -786,3 +788,48 @@ Spring中的xml格式
 >
 > **`但设计这个功能太麻烦，还需要弄一个bean别名注册表，所以这里假设不需要获取FactoryBean，只需要获取内部的bean`**
 
+
+
+### 6、Spring的事件机制（ApplicationContext提供的事件发布与监听功能）
+
+> `Spring事件机制类似于MQ`，流程都是 **发布者发布事件 --> 广播者保存事件并转发给监听者 --> 监听者监听事件 --> 接收到事件后处理事件**，体现了`发布--订阅`的思想，可以在单机环境中实现一定程度的代码解耦
+>
+> **但Spring的事件机制很少用，因为在分布式流行的现在 MQ一家独大，它的功能特性就显得很蹩脚，但也得了解一下它底层所使用的设计模式 --> `观察者模式` 。**
+>
+> Spring 事件机制适合`单体应用`，同一个 JVM 且并发不大的情况，如果是`分布式应用，推荐使用MQ`。
+>
+> Spring 事件监听机制和 MQ 有相似的地方，也有不同的地方。`MQ` 允许跨 JVM，因为它本身是`独立于项目之外`的，切提供了消息持久化的特性，而 `Spring 事件机制`哪怕使用了异步，`本质是还是在本地JVM上进行方法调用`，本地JVM宕机了就没了。
+
+
+
+> `思考一个问题，事件的发布与处理，需要哪些角色呢？`
+>
+> 1. 事件对象本身
+> 2. 事件的发布者（用于发布事件）
+> 3. 事件的广播者（用于将事件转发给监听者）
+> 4. 事件的监听者（用于监听并处理事件）
+
+#### 1、ApplicationEvent（事件实体类）
+
+顾名思义，一个事件实体对象 就`表示一个事件的发生`
+
+
+
+#### 2、ApplicationEventPublisher（事件发布者接口）
+
+> **提供的接口：**
+>
+> 1. 发布事件
+
+#### 3、ApplicationEventMulticaster（事件广播者接口）
+
+> **提供的接口：**
+>
+> 1. 将监听者和某种类型事件绑定
+> 2. 将事件发送给绑定它的类型的监听者们
+
+#### 4、ApplicationListener（事件监听者接口）
+
+> **提供的接口：**
+>
+> 1. 处理事件
