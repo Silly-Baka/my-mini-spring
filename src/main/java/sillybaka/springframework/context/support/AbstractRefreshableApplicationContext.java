@@ -1,6 +1,6 @@
 package sillybaka.springframework.context.support;
 
-import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactory;
+import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactoryBean;
 
 /**
  *
@@ -13,7 +13,7 @@ import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactor
  **/
 public abstract class AbstractRefreshableApplicationContext extends AbstractApplicationContext{
 
-    private volatile DefaultListableBeanFactory beanFactory;
+    private volatile DefaultListableBeanFactoryBean beanFactory;
 
     @Override
     public void refreshBeanFactory() {
@@ -23,7 +23,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
             closeBeanFactory();
         }
         // 创建一个新的BeanFactory
-        DefaultListableBeanFactory beanFactory = createBeanFactory();
+        DefaultListableBeanFactoryBean beanFactory = createBeanFactory();
 
         // 加载所有的beanDefinition  todo 这里是否包含特殊bean？不包含
         loadBeanDefinitions(beanFactory);
@@ -31,13 +31,13 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
         this.beanFactory = beanFactory;
     }
 
-    public DefaultListableBeanFactory createBeanFactory(){
+    public DefaultListableBeanFactoryBean createBeanFactory(){
         //todo 更改为用父级上下文的内置BeanFactory作为本上下文的内置BeanFactory的父亲
-        return new DefaultListableBeanFactory();
+        return new DefaultListableBeanFactoryBean();
     }
 
     @Override
-    protected DefaultListableBeanFactory getBeanFactory() {
+    protected DefaultListableBeanFactoryBean getBeanFactory() {
         return beanFactory;
     }
 
@@ -52,6 +52,6 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
     /**
      * 将BeanDefinition加载到指定的BeanFactory中。此功能委托给BeanDefinitionReader来实现
      */
-    protected abstract void loadBeanDefinitions(DefaultListableBeanFactory beanFactory);
+    protected abstract void loadBeanDefinitions(DefaultListableBeanFactoryBean beanFactory);
 
 }

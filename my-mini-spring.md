@@ -541,7 +541,7 @@ public void destroy() {
             processor.postProcessBeforeDestruction(this.bean, this.beanName);
         }
     }
-    // 如果实现了DisposableBean接口 并且bean定义指定的destroy方法不叫destroy
+    // 如果实现了DisposableBean接口 并且bean定义没有外部destroy方法
     if (this.invokeDisposableBean) {
         if (logger.isTraceEnabled()) {
             logger.trace("Invoking destroy() on bean with name '" + this.beanName + "'");
@@ -629,110 +629,17 @@ public void destroy() {
 > 1. `关闭或者刷新IOC容器时`，需要删除所有的bean
 > 2.  Bean实例`被覆盖或者过期`时
 >
-> 
->
 > **关于DestroyBean的实际逻辑**
 >
-> IOC容器是`可拓展`的容器（实现了ConfigurableBeanFactory接口） --> 委托`DisposableAdapter`来处理实际的逻辑`（即会判断是否有 自定义的destroy-method 或 使用注解添加的destroy （BeanProcessor））`
+> 在Spring中对destroyBean的调用具有两个层面：
 >
-> 
+> 1. IOC容器是`可拓展`的容器（实现了ConfigurableBeanFactory接口） --> 委托`DisposableAdapter`来处理实际的逻辑`（即会判断是否有 自定义的destroy-method 或 使用注解添加的destroy BeanProcessor）`
+> 2. `不可拓展` --> 无法使用自定义的destroy，只能看bean是否`实现了DisposableBean接口`，若实现了则会调用destroy()作为实际逻辑，否则就只是简单地回收内存
+
+> 实际上Spring将这分为了两套操作 **（Spring真的很爱缓存）**
 >
-> **实际上Spring中的destroyBean有两套逻辑**
->
-> 1. `AbstractAutoCapableBeanFactory`中的 **destroyBean**(Object existingBean)`（不用这个方法，这个是AutoCapableBeanFactory提供的接口  --> 几乎不用这个方法）`
->
->    传入一个Bean对象，然后`包装成DisposableBeanAdapter`再处理destroy方法
->
->    ```java
->    @Override
->    public void destroyBean(Object existingBean) {
->        // 委托给DisposableBeanAdapter进行处理
->       new DisposableBeanAdapter(
->             existingBean, getBeanPostProcessorCache().destructionAware, getAccessControlContext()).destroy();
->    }
->    ```
->
->    
->
-> 2. `DefaultSingletonRegistry`中会有一个特殊的注册表，保存了**所有实现了DisposableBean接口或者bean定义中指定了destroy-method的单例bean包装而成的DisposableAdapter对象（`在Bean注册时注入`，单例bean才会有，相当于缓存了对所有单例bean的destroy判断）**
->
->    `DefaultSingletonRegistry`中的`destroySingleton方法`和`destroySingletons方法`，是**`destroyBean`**的模板逻辑`（ConfigurableBeanFactory中定义的接口 --> Spring常用这个）`
->
->    ```java
->    // 销毁指定的单例bean
->    public void destroySingleton(String beanName) {
->        
->        // 删除缓存中的bean
->        removeSingleton(beanName);
->    
->        DisposableBean disposableBean;
->        
->        // 从特殊的注册表中取出该bean对应的DisposableAdapter
->        synchronized (this.disposableBeans) {
->            disposableBean = (DisposableBean) this.disposableBeans.remove(beanName);
->        }
->        
->       	// 实际destroy逻辑
->        destroyBean(beanName, disposableBean);
->    }
->    
->    // 销毁所有的单例bean
->    public void destroySingletons() {
->        if (logger.isTraceEnabled()) {
->            logger.trace("Destroying singletons in " + this);
->        }
->        synchronized (this.singletonObjects) {
->            this.singletonsCurrentlyInDestruction = true;
->        }
->    
->        String[] disposableBeanNames;
->        synchronized (this.disposableBeans) {
->            disposableBeanNames = StringUtils.toStringArray(this.disposableBeans.keySet());
->        }
->        // 倒序取出所有的DisposableAdapter
->        for (int i = disposableBeanNames.length - 1; i >= 0; i--) {
->            // 再一个个处理删除单个的逻辑
->            destroySingleton(disposableBeanNames[i]);
->        }
->    
->      	// 清除所有的缓存
->        this.containedBeanMap.clear();
->        this.dependentBeanMap.clear();
->        this.dependenciesForBeanMap.clear();
->    
->        clearSingletonCache();
->    }
->    
->    // 销毁一个bean的实际逻辑
->    protected void destroyBean(String beanName, @Nullable DisposableBean bean) {
->    
->        Set<String> dependencies;
->        synchronized (this.dependentBeanMap) {
->            dependencies = this.dependentBeanMap.remove(beanName);
->        }
->        if (dependencies != null) {
->            if (logger.isTraceEnabled()) {
->                logger.trace("Retrieved dependent beans for bean '" + beanName + "': " + dependencies);
->            }
->            // 销毁该bean所有依赖的bean
->            for (String dependentBeanName : dependencies) {
->                destroySingleton(dependentBeanName);
->            }
->        }
->    
->        if (bean != null) {
->            try {
->                // 真正执行当前bean的自定义destroy方法
->                bean.destroy();
->            }
->            catch (Throwable ex) {
->                if (logger.isWarnEnabled()) {
->                    logger.warn("Destruction of bean with name '" + beanName + "' threw an exception", ex);
->                }
->            }
->        }
->        ....................
->    ```
+> 1. 销毁**指定的bean** （**自己传入bean对象**，然后流程和上面两点一样）
+> 2. 销毁**所有的bean原型实例** （在bean注册时，`多创建一个包装了当前bean的DisposableAdapter对象（会自动处理判断destroy方法的所有逻辑），并且加入到特殊的注册表，相当于缓存了对所有bean的判断`，然后在销毁所有bean时，会从特殊注册表中一个个取出，再执行每个bean的destroy逻辑）
 
 
 
@@ -760,83 +667,37 @@ Spring中的xml格式
 
 ### 4、Aware接口
 
-> Aware-意识到、知道的、察觉到的，`Aware接口`是Spring中`用于标识的接口`，实现了该接口的类可以获得`感知Spring内部容器相关对象`的能力。
+> Aware-意识到、知道的、察觉到的，`Aware接口`是Spring中`用于标识的接口`，实现了该接口的类可以获得`感知Spring内部容器`的能力。
 >
 > 比如说`BeanFactoryAware`和`ApplicationContextAware`接口，实现了这两个接口的Bean可以分别`感知到它所属的BeanFactory和ApplicationContext`（即获得这些对象），进而使用它们所拥有的功能。
 >
 > 有时候你的Bean需要**通过Spring来获取某些东西**（**以Bean为主动**，而不是我们程序员），那就需要实现这个接口
 
-```java
-/**
- * Description：用于标识的接口。实现了该接口的类可以通过回调的方式得到Spring中的某些对象 进而使用他们
- *
- * @Author SillyBaka
- **/
-public interface Aware {
-}
-```
-
 #### 4.1 BeanFactoryAware（使Bean能感知到其所属的BeanFactory）
 
 这里的回调应该发生在`Bean实例化之后（要先有对象才能回调其函数）`，`Bean初始化之前（因为初始化的逻辑中可能会使用到）`
-
-```java
-/**
- * Description：实现了该接口的Bean可以感知到其所属的BeanFactory
- *
- * @Author SillyBaka
- **/
-public interface BeanFactoryAware extends Aware{
-
-    /**
-     * 为了获取所属的beanFactory而设置的回调函数
-     * 在为bean填充完属性后，在调用其初始化方法或自定义初始化方法 之前调用
-     */
-    void setBeanFactory(BeanFactory beanFactory);
-}
-```
 
 #### 4.2 ApplicationContextAware（使Bean能感知到其所属的ApplicationContext）
 
 这里的回调也应该发生在`Bean实例化之后（要先有对象才能回调其函数）`，`Bean初始化之前（因为初始化的逻辑中可能会使用到）`，但由于创建是在内置的BeanFactory中进行的，而`BeanFactory无法感知到其上下文`（也可以设计成可感知），而ApplicationContext`在Bean实例化之前会自动注册BeanPostProcessor`，所以可以在注册BeanPostProcessor时将上下文记录。在**调用BeanPostProcessor时再回调注入到Bean中**
 
-```java
-/**
- * Description：实现了该接口的Bean可以通过回调感知到其所属的ApplicationContext
- * Date: 2022/10/22
- * Time: 19:52
- *
- * @Author SillyBaka
- **/
-public interface ApplicationContextAware extends Aware{
-
-    /**
-     * 为了获取Bean所属的ApplicationContext而设置的回调函数，在执行自定义初始化方法之前通过BeanPostProcessor来调用
-     */
-    void setApplicationContext(ApplicationContext applicationContext);
-}
-```
-
 #### 4.3 当前Bean的生命周期
 
-![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/aware-interface.png)
+![img](https://github.com/DerekYRC/mini-spring/raw/main/assets/aware-interface.png)
 
 
 
 
 
-### 5、Bean的Scope作用域（实现prototype）
+### 5、FactoryBean（工厂bean，是一个bean也是自己的工厂）
 
-> 在前面的章节中，我们的Bean只实现了`单例（Singleton）模式`，这里我们将实现`多例（prototype）模式`
+> `FactoryBean`是一种特殊的Bean，它的`生命周期由IOC容器进行管理`，但它`内部Bean实例的生命周期则由自己来管理`，所以IOC容器`不会自动调用` FactoryBean所管理的Bean的 `拓展方法`（比如DisposableBean.destroy()）
+
+> **FactoryBean由`IOC容器直接管理`，所以我们通过BeanName就可以获得`FactoryBean对象`，但IOC容器如何知道你要获取的就是FactoryBean还是它的bean实例呢？**
 >
-> 在Spring中，Bean的Scope拥有五种：
+> Spring在`BeanFactory接口`中提供了这样的一个静态属性：`FACTORY_BEAN_PREFIX` 放在beanName中，用于标识你实际上要获取的是FactoryBean还是它里面的bean实例。
 >
-> 1. `singleton（单例，整个应用上下文只存在一个实例  --> IOC容器中会有一个单例对象表存所有bean的单例对象）`
-> 2. `prototype（多例，每次获取bean都会创建一个新的实例  --> IOC容器中不会保存该实例，也不会处理它的自定义destroy方法 多例bean的生命周期由用户自己决定）`
-> 3. request（一个http请求中存在一个实例）
-> 4. session（一个session存在一个实例）
-> 5. global-session（全部session共享这个实例，即整个WebApplicationContext）
+> ![image-20221023162844987](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221023162844987.png)
+>
+> **`但设计这个功能太麻烦，还需要弄一个bean别名注册表，所以这里假设不需要获取FactoryBean，只需要获取内部的bean`**
 
-#### 实现了prototype后的bean生命周期（多例bean不会执行自定义destroy方法）
-
-![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/prototype-bean.png)

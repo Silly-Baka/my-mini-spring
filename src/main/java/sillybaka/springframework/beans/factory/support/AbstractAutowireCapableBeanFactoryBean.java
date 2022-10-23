@@ -23,7 +23,7 @@ import java.util.Map;
  * @Author SillyBaka
  **/
 @Slf4j
-public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory implements AutowireCapableBeanFactory {
+public abstract class AbstractAutowireCapableBeanFactoryBean extends AbstractBeanFactoryBean implements AutowireCapableBeanFactory {
 
     private static final InstantiationStrategy INSTANTIATION_STRATEGY = new SimpleInstantiationStrategy();
 

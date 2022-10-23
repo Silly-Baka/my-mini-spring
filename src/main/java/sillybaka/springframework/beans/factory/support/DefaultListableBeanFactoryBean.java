@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Description：核心的Bean工厂，真正可以独立地创建一个Bean
  **/
 @Slf4j
-public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFactory implements BeanDefinitionRegistry, ConfigurableListableBeanFactory {
+public class DefaultListableBeanFactoryBean extends AbstractAutowireCapableBeanFactoryBean implements BeanDefinitionRegistry, ConfigurableListableBeanFactory {
     /**
      * bean定义的注册表
      */
