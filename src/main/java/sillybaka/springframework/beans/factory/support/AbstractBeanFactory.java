@@ -11,11 +11,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Description：抽象的Bean工厂（实现了通用的方法）
  * Date: 2022/10/11
  * Time: 20:47
  *
  * @Author SillyBaka
- * Description：抽象的Bean工厂（实现了通用的方法）
  **/
 public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry implements BeanFactory, ConfigurableBeanFactory {
 
@@ -26,19 +26,31 @@ public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry i
     @Override
     public Object getBean(String beanName) {
 
-        Object bean = getSingletonBean(beanName);
-        // 如果bean为空，则说明注册表中没有 需要在工厂创建
-        if(bean == null){
-            // 双重校验
-            synchronized (AbstractBeanFactory.class){
-                bean = getSingletonBean(beanName);
-                if(bean == null){
-                    bean = createBean(beanName,getBeanDefinition(beanName));
-                    // 注册进注册表
-                    registerBean(beanName,bean);
+        Object bean = null;
+
+        BeanDefinition<?> beanDefinition = getBeanDefinition(beanName);
+
+        // 单例模式
+        if(beanDefinition.isSingleton()){
+            // 先查看缓存中有无该bean
+            bean = getSingleton(beanName);
+
+            // 如果bean为空，则说明缓存注册表中没有 需要在工厂中创建一个新的实例
+            if(bean == null){
+                synchronized (AbstractBeanFactory.class){
+                    bean = createBean(beanName, beanDefinition);
+                    addSingleton(beanName,bean);
                 }
             }
+        // 多例bean 创建一个新实例
+        }else if(beanDefinition.isPrototype()){
+            bean = createBean(beanName,beanDefinition);
         }
+
+        if(bean == null){
+            throw new BeansException("The scope of the bean [" + beanName + "] is invalid");
+        }
+
         return bean;
     }
 

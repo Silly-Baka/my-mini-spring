@@ -16,11 +16,11 @@ import java.util.Map;
 
 
 /**
+ * Description：抽象的自动装配Bean工厂 --> 负责处理创建Bean、填充Bean（将Bean装配成一个完整的对象）的实际逻辑
  * Date: 2022/10/13
  * Time: 19:40
  *
  * @Author SillyBaka
- * Description：抽象的自动装配Bean工厂 --> 负责实现自动装配的逻辑
  **/
 @Slf4j
 public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory implements AutowireCapableBeanFactory {
@@ -215,13 +215,16 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
     }
 
     /**
-     * 判断bean是否实现了DisposableBean接口 或者指定了destroy()方法，若是则注册进注册表中
+     * 判断bean是否实现了DisposableBean接口 或者指定了destroy()方法，若是则包装成DisposableBeanAdapter注册进注册表中，只有单例Bean才会注册
      */
-    public <T> void registerDisposableBeanIfNecessary(String beanName, T bean, BeanDefinition<T> beanDefinition){
+    protected <T> void registerDisposableBeanIfNecessary(String beanName, T bean, BeanDefinition<T> beanDefinition){
 
-        // 当bean实现了DisposableBean接口 或者指定了destroy()方法时
-        if(bean instanceof DisposableBean || StrUtil.isNotBlank(beanDefinition.getDestroyMethodName())){
-            registerDisposableBean(beanName,new DisposableBeanAdapter(beanName,bean,beanDefinition));
+        // 只有单例bean才能执行自定义的destroy
+        if(beanDefinition.isSingleton()){
+            // 当bean实现了DisposableBean接口 或者指定了destroy()方法时
+            if(bean instanceof DisposableBean || StrUtil.isNotBlank(beanDefinition.getDestroyMethodName())){
+                registerDisposableBean(beanName,new DisposableBeanAdapter(beanName,bean,beanDefinition));
+            }
         }
     }
 
