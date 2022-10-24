@@ -16,14 +16,14 @@ public class XmlReaderTest {
     @Test
     public void testXmlReader(){
         ResourceLoader resourceLoader = new DefaultResourceLoader();
-        BeanDefinitionRegistry beanDefinitionRegistry = new DefaultListableBeanFactoryBean();
+        BeanDefinitionRegistry beanDefinitionRegistry = new DefaultListableBeanFactory();
         BeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(resourceLoader,beanDefinitionRegistry);
 
         // 1、先从xml配置文件中读取Bean定义 并注册进注册表
         beanDefinitionReader.loadBeanDefinitions("classpath:test1.xml");
 
         // 2、BeanFactory根据beanName获取bean实例（懒汉式创建）
-        BeanFactory beanFactory = new DefaultListableBeanFactoryBean();
+        BeanFactory beanFactory = new DefaultListableBeanFactory();
         Object carBean1 = beanFactory.getBean("carBean1");
 
         System.out.println(carBean1);

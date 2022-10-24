@@ -14,4 +14,11 @@ public interface BeanFactory {
      * @return bean的实例对象
      */
     Object getBean(String beanName);
+
+    /**
+     * 根据指定类型获取bean（避免强转的方法）
+     * @param beanName
+     * @param requiredType 需要的类型
+     */
+    <T> T getBean(String beanName,Class<T> requiredType);
 }

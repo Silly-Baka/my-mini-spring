@@ -18,7 +18,7 @@ import java.util.List;
  *
  * @Author SillyBaka
  **/
-public abstract class AbstractBeanFactoryBean extends FactoryBeanRegistrySupport implements BeanFactory, ConfigurableBeanFactory {
+public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport implements BeanFactory, ConfigurableBeanFactory {
 
     private final List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
 
@@ -26,7 +26,15 @@ public abstract class AbstractBeanFactoryBean extends FactoryBeanRegistrySupport
 
     @Override
     public Object getBean(String beanName) {
+        return doGetBean(beanName,null);
+    }
 
+    @Override
+    public <T> T getBean(String beanName, Class<T> requiredType) {
+        return doGetBean(beanName,requiredType);
+    }
+
+    protected <T> T doGetBean(String beanName, Class<T> requiredType){
         Object beanInstance;
 
         BeanDefinition<?> beanDefinition = getBeanDefinition(beanName);
@@ -45,9 +53,21 @@ public abstract class AbstractBeanFactoryBean extends FactoryBeanRegistrySupport
             if(beanDefinition.isSingleton()){
                 addSingleton(beanName,beanInstance);
             }
+
+            beanInstance = getObjectForBeanInstance(beanInstance,beanName);
         }
 
-        return getObjectForBeanInstance(beanInstance,beanName);
+        return adaptBeanInstance(beanName,beanInstance,requiredType);
+    }
+
+    @SuppressWarnings("unchecked")
+    protected <T> T adaptBeanInstance(String beanName, Object beanInstance, Class<?> requiredType) {
+        // 如果bean不是指定类型的实例 需要判断能否转化成指定类型
+        if(requiredType != null && !requiredType.isInstance(beanInstance)){
+            // 判断能够转化为对应类型的对象
+        }
+
+        return (T) beanInstance;
     }
 
     /**

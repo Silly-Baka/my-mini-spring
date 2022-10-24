@@ -7,7 +7,33 @@ package sillybaka.springframework.context;
  **/
 public interface ApplicationEventMulticaster {
 
-    <E> void addApplicationListener(Class<E> eventType, ApplicationListener<? extends ApplicationEvent> listener);
+    /**
+     * 添加绑定listener
+     * @param applicationListener 要添加的listener
+     */
+    void addApplicationListener(ApplicationListener<?> applicationListener);
 
+    /**
+     * 卸载指定listener
+     * @param applicationListener 要删除的listener
+     */
+    void removeApplicationListener(ApplicationListener<?> applicationListener);
 
+    /**
+     * 添加applicationListenerBean，根据beanName从容器中取出再添加
+     * @param beanName 指定的listener在容器中的名字
+     */
+    void addApplicationListenerBean(String beanName);
+
+    /**
+     * 根据beanName卸载指定listenerBean
+     * @param beanName 要卸载的listenBean的名字
+     */
+    void removeApplicationListenerBean(String beanName);
+
+    /**
+     * 广播指定的事件
+     * @param event 需要广播的事件
+     */
+    void multicastEvent(ApplicationEvent event);
 }

@@ -1,5 +1,7 @@
 package sillybaka.springframework.context.event;
 
+import sillybaka.springframework.context.ApplicationContext;
+
 /**
  * 在初始化或者刷新ApplicationContext时触发的事件
  *
@@ -7,7 +9,7 @@ package sillybaka.springframework.context.event;
  **/
 public class ContextRefreshedEvent extends ApplicationContextEvent{
 
-    public ContextRefreshedEvent(Object source) {
-        super(source);
+    public ContextRefreshedEvent(Object source, ApplicationContext applicationContext) {
+        super(source, applicationContext);
     }
 }

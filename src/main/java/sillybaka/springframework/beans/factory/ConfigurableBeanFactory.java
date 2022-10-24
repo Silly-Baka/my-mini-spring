@@ -63,6 +63,6 @@ public interface ConfigurableBeanFactory extends BeanFactory, SingletonBeanRegis
      * @param beanName
      * @param bean
      */
-    void destroySingleton(String beanName,Object bean);
+    void destroySingleton(String beanName);
 
 }

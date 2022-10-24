@@ -11,14 +11,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * Description：核心的Bean工厂，真正可以独立地创建一个Bean
  * Date: 2022/10/13
  * Time: 20:02
  *
  * @Author SillyBaka
- * Description：核心的Bean工厂，真正可以独立地创建一个Bean
  **/
 @Slf4j
-public class DefaultListableBeanFactoryBean extends AbstractAutowireCapableBeanFactoryBean implements BeanDefinitionRegistry, ConfigurableListableBeanFactory {
+public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFactory implements BeanDefinitionRegistry, ConfigurableListableBeanFactory {
     /**
      * bean定义的注册表
      */
@@ -124,5 +124,14 @@ public class DefaultListableBeanFactoryBean extends AbstractAutowireCapableBeanF
             //todo 偷懒 直接调用getBean的逻辑 实际上这里浪费了返回值，并且全是以单例的方式创建
             getBean(beanName);
         });
+    }
+
+    /**
+     * 销毁单例bean，实际逻辑委托给父类{@link DefaultSingletonBeanRegistry#destroySingleton(String)}
+     * @param beanName 要销毁的bean的名字
+     */
+    @Override
+    public void destroySingleton(String beanName) {
+        super.destroySingleton(beanName);
     }
 }
