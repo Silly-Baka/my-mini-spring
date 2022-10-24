@@ -269,7 +269,9 @@ XML示例
 
 
 
-> **BeanPostProcessor** 也是Spring提供的**容器拓展机制**，该接口允许我们在 **Bean对象实例化以及依赖注入完成后**，但在**显式地调用初始化方法的前后** 添加我们自己的逻辑。
+> **BeanPostProcessor** 也是Spring提供的**容器拓展机制**，该接口允许我们在 **Bean对象实例化以及依赖注入完成后**，但在**显式地调用初始化方法的前后** 添加我们自己的逻辑。**`（和Netty中的handler相似，对bean依次执行BeanPostProcessor链上的每一个处理器 初始化前执行相当于入站处理器，初始化后执行相当于出站处理器）`**
+>
+> ​	**`BeanPostProcessor应该拥有各自执行的优先级（因为是一条处理链）`**
 >
 > **Spring中的使用场景：**
 >
@@ -281,7 +283,7 @@ XML示例
 >
 > ```java
 > public interface BeanPostProcessor {
-> 	
+> 
 >     // 显式地初始化之前调用
 > 	Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException;
 > 
@@ -804,10 +806,10 @@ Spring中的xml格式
 
 > `思考一个问题，事件的发布与处理，需要哪些角色呢？`
 >
-> 1. 事件对象本身
-> 2. 事件的发布者（用于发布事件）
-> 3. 事件的广播者（用于将事件转发给监听者）
-> 4. 事件的监听者（用于监听并处理事件）
+> 1. 事件对象本身 --> 用户自己实现
+> 2. 事件的发布者（用于发布事件）  --> 接口外放给用户使用
+> 3. 事件的广播者（用于将事件转发给监听者） --> spring内部调用
+> 4. 事件的监听者（用于监听并处理事件） --> 注册接口外放给用户使用，用户提供，spring内部调用
 
 #### 1、ApplicationEvent（事件实体类）
 
@@ -932,7 +934,7 @@ public abstract class AbstractApplicationEventMulticaster implements Application
 
 > **在这里要注意一个问题**
 >
-> Spring中的事件机制可以是**同步的**也可以是**异步的**（**默认是同步**的，需要设置**自定义的异步线程池**才是异步）
+> Spring中的事件机制可以是**`同步的`**也可以是**`异步的`**（**`默认是同步`**的，需要设置**自定义的异步线程池**才是异步）
 
 ```java
 public class SimpleApplicationEventMulticaster extends AbstractApplicationEventMulticaster{
@@ -996,3 +998,86 @@ public class SimpleApplicationEventMulticaster extends AbstractApplicationEventM
 > 
 > }
 > ```
+
+
+
+#### 5、更新ApplicationContext接口及其抽象实现AbstractApplicationContext
+
+> 1、ApplicationContext需要提供`发布事件`的功能**（面向用户）** --> 实现 `ApplicationEventPublish` 接口
+>
+> 2、ApplicationContext需要内置一个 `ApplicationEventMulticaster对象（内部创建）`，方便对事件进行传播**（面向Spring内部使用）**
+>
+> 3、监听器ApplicationListener要`如何注册进ApplicationContext，如何绑定ApplicationEventMulticaster？`
+>
+> 除了`Spring内置事件所需的ApplicationListener以外`，其余的都是`用户按需提供`的，而ApplicationListener会作为`特殊Bean`存留在IOC容器中。
+>
+> 所以`用户提供的ApplicationListener`会随着初始化上下文中的加载Bean定义、预实例化所有Bean对象 从而注册进上下文当中。但`绑定到ApplicationEventMulticaster`则需要在Bean实例化后通过`BeanPostProcessor`来处理
+>
+> （Spring内部提供了一个叫`ApplicationListenerDetector`的BeanPostProcessor来处理这件事）
+
+
+
+**简单的ApplicationListenerDetector（只在bean实例化后处理）**
+
+```java
+public class ApplicationListenerDetector extends ApplicationContextAwareProcessor implements BeanPostProcessor {
+
+    public ApplicationListenerDetector(ConfigurableApplicationContext applicationContext) {
+        super(applicationContext);
+    }
+
+    @Override
+    public <T> T postProcessAfterInitialization(T bean, String beanName) {
+        // 检查是否是监听器
+        if(bean instanceof ApplicationListener){
+            //若是 则注册进上下文中
+            applicationContext.addApplicationListener((ApplicationListener<?>) bean);
+        }
+        return bean;
+    }
+}
+```
+
+在上下文刷新时，bean实例化之前 将**ApplicationListenerDetector**注入上下文
+
+```java
+public void refresh() {
+
+    // 获取BeanFactory
+    ConfigurableListableBeanFactory beanFactory = obtainBeanFactory();
+
+    // 为新的内置BeanFactory填充特殊内置属性
+    prepareBeanFactory(beanFactory);
+
+    // 在实例化bean之前调用beanFactoryPostProcessor 看是否需要修改beanDefinition
+    invokeBeanFactoryPostProcessors(beanFactory);
+
+    // 注册BeanPostProcessors进当前内置的BeanFactory
+    registerBeanPostProcessors(beanFactory);
+
+    //---- 注册其他上下文应提供的拓展组件 ---
+
+    //注册事件广播器
+    initApplicationEventMulticaster();
+
+    // ----------------------
+
+    // 预实例化所有的bean
+    beanFactory.preInitiateSingletons();
+}
+
+protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
+
+    beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
+    beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
+}
+```
+
+
+
+**至此，Spring的事件机制基本雏形就做好了，但现在支持注入事件监听器的方式只有**
+
+1. 通过ApplicationContext接口提供的 **addApplicationListener** `手动注入`
+2. 通过XML配置文件配置**addApplicationListenerBean**，在启动上下文时 `自动注入`
+3. **`后面再开发 注解驱动配置（自动注入）`**
+

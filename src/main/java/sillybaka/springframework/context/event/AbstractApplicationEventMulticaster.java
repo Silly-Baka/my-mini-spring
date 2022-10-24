@@ -22,7 +22,7 @@ import java.util.Set;
 public abstract class AbstractApplicationEventMulticaster implements ApplicationEventMulticaster, BeanFactoryAware {
 
     /**
-     * 用于保存绑定的监听者
+     * 用于保存绑定的监听者，在同一上下文中无法注册完全相同的监听者
      */
     protected final Set<ApplicationListener<?>> applicationListeners = new HashSet<>(16);
 

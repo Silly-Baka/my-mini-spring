@@ -12,4 +12,5 @@ import sillybaka.springframework.core.io.ResourceLoader;
  * @Author SillyBaka
  **/
 public interface ApplicationContext extends ListableBeanFactory, HierarchicalBeanFactory, ResourceLoader, ApplicationEventPublisher {
+
 }

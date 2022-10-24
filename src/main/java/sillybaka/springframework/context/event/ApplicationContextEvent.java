@@ -15,8 +15,8 @@ public abstract class ApplicationContextEvent extends ApplicationEvent {
      */
     protected final ApplicationContext applicationContext;
 
-    public ApplicationContextEvent(Object source, ApplicationContext applicationContext) {
+    public ApplicationContextEvent(ApplicationContext source) {
         super(source);
-        this.applicationContext = applicationContext;
+        this.applicationContext = source;
     }
 }

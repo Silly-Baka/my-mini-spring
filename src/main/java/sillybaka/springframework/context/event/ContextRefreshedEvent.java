@@ -9,7 +9,7 @@ import sillybaka.springframework.context.ApplicationContext;
  **/
 public class ContextRefreshedEvent extends ApplicationContextEvent{
 
-    public ContextRefreshedEvent(Object source, ApplicationContext applicationContext) {
-        super(source, applicationContext);
+    public ContextRefreshedEvent(ApplicationContext source) {
+        super(source);
     }
 }

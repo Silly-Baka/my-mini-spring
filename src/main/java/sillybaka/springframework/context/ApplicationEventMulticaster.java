@@ -1,5 +1,7 @@
 package sillybaka.springframework.context;
 
+import java.util.concurrent.Executor;
+
 /**
  * Spring事件机制中的广播者，提供将事件转发给事件监听者，让监听者和事件类型相绑定的接口
  *
@@ -36,4 +38,10 @@ public interface ApplicationEventMulticaster {
      * @param event 需要广播的事件
      */
     void multicastEvent(ApplicationEvent event);
+
+    /**
+     * 为当前的广播器添加异步线程池
+     * @param executor 要添加的线程池
+     */
+    void addTaskExecutor(Executor executor);
 }

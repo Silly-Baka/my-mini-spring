@@ -45,7 +45,8 @@ public class SimpleApplicationEventMulticaster extends AbstractApplicationEventM
         listener.onApplicationEvent(event);
     }
 
-    protected void setTaskExecutor(Executor executor){
+    @Override
+    public void addTaskExecutor(Executor executor) {
         this.taskExecutor = executor;
     }
 

@@ -9,7 +9,7 @@ import sillybaka.springframework.context.ApplicationContext;
  **/
 public class ContextClosedEvent extends ApplicationContextEvent {
 
-    public ContextClosedEvent(Object source, ApplicationContext applicationContext) {
-        super(source, applicationContext);
+    public ContextClosedEvent(ApplicationContext source) {
+        super(source);
     }
 }

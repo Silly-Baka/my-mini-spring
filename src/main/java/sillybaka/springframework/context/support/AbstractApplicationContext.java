@@ -4,13 +4,18 @@ import sillybaka.springframework.beans.factory.ConfigurableListableBeanFactory;
 import sillybaka.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import sillybaka.springframework.beans.factory.config.BeanPostProcessor;
 import sillybaka.springframework.beans.factory.support.ApplicationContextAwareProcessor;
-import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactory;
+import sillybaka.springframework.beans.factory.support.ApplicationListenerDetector;
 import sillybaka.springframework.context.ApplicationEvent;
 import sillybaka.springframework.context.ApplicationEventMulticaster;
+import sillybaka.springframework.context.ApplicationListener;
 import sillybaka.springframework.context.ConfigurableApplicationContext;
+import sillybaka.springframework.context.event.ContextClosedEvent;
+import sillybaka.springframework.context.event.ContextRefreshedEvent;
 import sillybaka.springframework.context.event.SimpleApplicationEventMulticaster;
 import sillybaka.springframework.core.io.DefaultResourceLoader;
 import sillybaka.springframework.exception.BeansException;
+
+import java.util.concurrent.Executor;
 
 /**
  * Description：ApplicationContext接口的抽象实现，简单地实现了通用方法。
@@ -24,6 +29,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
 
     // 事件传播器
     private ApplicationEventMulticaster applicationEventMulticaster;
+
+    // 异步线程池 由用户决定是否添加
+    private Executor taskExecutor;
 
     //todo 模板方法 只提供了抽象逻辑 具体逻辑由子类实现 -- 有待完善
     @Override
@@ -41,7 +49,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
         // 注册BeanPostProcessors进当前内置的BeanFactory
         registerBeanPostProcessors(beanFactory);
 
-        // 注册其他上下文应提供的拓展组件
+        //---- 注册其他上下文应提供的拓展组件 ---
+
+        //注册事件广播器
         initApplicationEventMulticaster();
 
         // ----------------------
@@ -49,6 +59,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
         // 预实例化所有的bean
         beanFactory.preInitiateSingletons();
 
+        // 上下文刷新完毕 发布事件
+        publishEvent(new ContextRefreshedEvent(this));
     }
 
     /**
@@ -56,8 +68,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
      */
     protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 
-        beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
+        // 注册特殊bean的定义
 
+        beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
+        beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
     }
 
     /**
@@ -98,10 +112,13 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
     }
 
     /**
-     * 为指定的beanFactory注册所有BeanPostProcessor
-     * @param beanFactory
+     * 为指定的beanFactory注册所有BeanPostProcessor（实际上应该按照优先级先后注册）
+     * @param beanFactory 内置的BeanFactory
      */
     protected void registerBeanPostProcessors(ConfigurableListableBeanFactory beanFactory){
+
+        // 注册自定义的BeanPostProcessor
+        //todo 真实的BeanPostProcessor应该有执行优先级 所以要按优先级排序后再放入
         String[] postProcessorNames = beanFactory.getBeanNamesForType(BeanPostProcessor.class, true);
         for (String postProcessorName : postProcessorNames) {
             // 由指定BeanFactory管理该BeanPostProcessor bean
@@ -125,6 +142,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
 
         if (applicationEventMulticaster == null) {
             applicationEventMulticaster = new SimpleApplicationEventMulticaster();
+
+            // 判断有无异步线程池 有则注入
+            if(this.taskExecutor != null){
+                applicationEventMulticaster.addTaskExecutor(taskExecutor);
+            }
             // 手动注册进容器中
             beanFactory.registerSingleton(APPLICATION_EVENT_MULTICASTER_BEAN_NAME, applicationEventMulticaster);
         }
@@ -144,6 +166,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
         // 再关闭内置的BeanFactory
         closeBeanFactory();
 
+        // 上下文已关闭 发布事件
+        publishEvent(new ContextClosedEvent(this));
     }
 
     /**
@@ -159,12 +183,22 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
     protected abstract void closeBeanFactory();
 
     /**
-     * 委托给内置BeanFactory处理
+     * 委托给内置BeanFactory实现
      * @param beanName bean的名字
      */
     @Override
     public Object getBean(String beanName) {
         return getBeanFactory().getBean(beanName);
+    }
+
+    /**
+     * 委托给内置BeanFactory实现
+     * @param beanName bean的名字
+     * @param requiredType 需要的类型
+     */
+    @Override
+    public <T> T getBean(String beanName, Class<T> requiredType) {
+        return getBeanFactory().getBean(beanName,requiredType);
     }
 
     /**
@@ -194,5 +228,22 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
 
     protected void setApplicationEventMulticaster(ApplicationEventMulticaster applicationEventMulticaster) {
         this.applicationEventMulticaster = applicationEventMulticaster;
+    }
+
+    /**
+     * 实现自{@link ConfigurableApplicationContext}，向当前上下文的广播器注册指定的监听器
+     * @param listener 要注册的监听器对象
+     */
+    @Override
+    public void addApplicationListener(ApplicationListener<?> listener) {
+        applicationEventMulticaster.addApplicationListener(listener);
+    }
+
+    @Override
+    public void addTaskExecutor(Executor executor) {
+        if(executor != null){
+            this.taskExecutor = executor;
+            applicationEventMulticaster.addTaskExecutor(executor);
+        }
     }
 }

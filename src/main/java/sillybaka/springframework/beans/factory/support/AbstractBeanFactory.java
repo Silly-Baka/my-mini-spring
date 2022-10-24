@@ -1,5 +1,6 @@
 package sillybaka.springframework.beans.factory.support;
 
+import lombok.extern.slf4j.Slf4j;
 import sillybaka.springframework.beans.factory.BeanFactory;
 import sillybaka.springframework.beans.factory.FactoryBean;
 import sillybaka.springframework.beans.factory.config.BeanDefinition;
@@ -18,6 +19,7 @@ import java.util.List;
  *
  * @Author SillyBaka
  **/
+@Slf4j
 public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport implements BeanFactory, ConfigurableBeanFactory {
 
     private final List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
@@ -37,8 +39,6 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
     protected <T> T doGetBean(String beanName, Class<T> requiredType){
         Object beanInstance;
 
-        BeanDefinition<?> beanDefinition = getBeanDefinition(beanName);
-
         // 在缓存中获取共享的bean实例
         Object sharedInstance = getSingleton(beanName);
 
@@ -47,6 +47,13 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
         }
         // 否则要准备创建新的bean实例
         else {
+            BeanDefinition<?> beanDefinition = getBeanDefinition(beanName);
+
+            if(beanDefinition == null){
+                log.debug("The bean Definition for the bean named [" + beanName + "] could not be found");
+                return null;
+            }
+
             beanInstance = createBean(beanName,beanDefinition);
 
             // 单例 需要缓存

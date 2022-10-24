@@ -41,14 +41,12 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
             throw new IllegalArgumentException("beanName不能为空");
         }
 
-        BeanDefinition<?> beanDefinition = beanDefinitionMap.get(beanName);
+        //        if(beanDefinition == null){
+//            log.error("不存在该beanName的bean定义：{}",beanName);
+//            throw new IllegalArgumentException("不存在该beanName的bean定义");
+//        }
 
-        if(beanDefinition == null){
-            log.error("不存在该beanName的bean定义：{}",beanName);
-            throw new IllegalArgumentException("不存在该beanName的bean定义");
-        }
-
-        return beanDefinition;
+        return beanDefinitionMap.get(beanName);
     }
 
     @Override
