@@ -39,5 +39,4 @@ public class ClassPathXmlApplicationContext extends AbstractXmlApplicationContex
         return configResources;
     }
 
-
 }

@@ -1,7 +1,7 @@
 package sillybaka.springframework.beans.factory;
 
 import sillybaka.springframework.beans.factory.config.BeanDefinition;
-import sillybaka.springframework.beans.factory.support.AbstractAutowireCapableBeanFactoryBean;
+import sillybaka.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory;
 import sillybaka.springframework.context.ApplicationContext;
 
 /**
@@ -14,10 +14,10 @@ import sillybaka.springframework.context.ApplicationContext;
 public interface ApplicationContextAware extends Aware{
 
     /**
-     * 为了获取Bean所属的ApplicationContext而设置的回调函数，在执行自定义初始化方法{@link AbstractAutowireCapableBeanFactoryBean#invokeInitMethods(Object, String, BeanDefinition)}之前
+     * 为了获取Bean所属的ApplicationContext而设置的回调函数，在执行自定义初始化方法{@link AbstractAutowireCapableBeanFactory#invokeInitMethods(Object, String, BeanDefinition)}之前
      * 通过BeanPostProcessor来调用
      *
-     * @see AbstractAutowireCapableBeanFactoryBean
+     * @see AbstractAutowireCapableBeanFactory
      * @param applicationContext 所属的上下文对象
      */
     void setApplicationContext(ApplicationContext applicationContext);

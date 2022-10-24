@@ -1,5 +1,6 @@
 package sillybaka.springframework.beans.factory.support;
 
+import lombok.extern.slf4j.Slf4j;
 import sillybaka.springframework.beans.factory.BeanFactory;
 import sillybaka.springframework.beans.factory.FactoryBean;
 import sillybaka.springframework.beans.factory.config.BeanDefinition;
@@ -18,7 +19,8 @@ import java.util.List;
  *
  * @Author SillyBaka
  **/
-public abstract class AbstractBeanFactoryBean extends FactoryBeanRegistrySupport implements BeanFactory, ConfigurableBeanFactory {
+@Slf4j
+public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport implements BeanFactory, ConfigurableBeanFactory {
 
     private final List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
 
@@ -26,10 +28,16 @@ public abstract class AbstractBeanFactoryBean extends FactoryBeanRegistrySupport
 
     @Override
     public Object getBean(String beanName) {
+        return doGetBean(beanName,null);
+    }
 
+    @Override
+    public <T> T getBean(String beanName, Class<T> requiredType) {
+        return doGetBean(beanName,requiredType);
+    }
+
+    protected <T> T doGetBean(String beanName, Class<T> requiredType){
         Object beanInstance;
-
-        BeanDefinition<?> beanDefinition = getBeanDefinition(beanName);
 
         // 在缓存中获取共享的bean实例
         Object sharedInstance = getSingleton(beanName);
@@ -39,15 +47,34 @@ public abstract class AbstractBeanFactoryBean extends FactoryBeanRegistrySupport
         }
         // 否则要准备创建新的bean实例
         else {
+            BeanDefinition<?> beanDefinition = getBeanDefinition(beanName);
+
+            if(beanDefinition == null){
+                log.debug("The bean Definition for the bean named [" + beanName + "] could not be found");
+                return null;
+            }
+
             beanInstance = createBean(beanName,beanDefinition);
 
             // 单例 需要缓存
             if(beanDefinition.isSingleton()){
                 addSingleton(beanName,beanInstance);
             }
+
+            beanInstance = getObjectForBeanInstance(beanInstance,beanName);
         }
 
-        return getObjectForBeanInstance(beanInstance,beanName);
+        return adaptBeanInstance(beanName,beanInstance,requiredType);
+    }
+
+    @SuppressWarnings("unchecked")
+    protected <T> T adaptBeanInstance(String beanName, Object beanInstance, Class<?> requiredType) {
+        // 如果bean不是指定类型的实例 需要判断能否转化成指定类型
+        if(requiredType != null && !requiredType.isInstance(beanInstance)){
+            // 判断能够转化为对应类型的对象
+        }
+
+        return (T) beanInstance;
     }
 
     /**

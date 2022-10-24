@@ -269,7 +269,9 @@ XML示例
 
 
 
-> **BeanPostProcessor** 也是Spring提供的**容器拓展机制**，该接口允许我们在 **Bean对象实例化以及依赖注入完成后**，但在**显式地调用初始化方法的前后** 添加我们自己的逻辑。
+> **BeanPostProcessor** 也是Spring提供的**容器拓展机制**，该接口允许我们在 **Bean对象实例化以及依赖注入完成后**，但在**显式地调用初始化方法的前后** 添加我们自己的逻辑。**`（和Netty中的handler相似，对bean依次执行BeanPostProcessor链上的每一个处理器 初始化前执行相当于入站处理器，初始化后执行相当于出站处理器）`**
+>
+> ​	**`BeanPostProcessor应该拥有各自执行的优先级（因为是一条处理链）`**
 >
 > **Spring中的使用场景：**
 >
@@ -281,7 +283,7 @@ XML示例
 >
 > ```java
 > public interface BeanPostProcessor {
-> 	
+> 
 >     // 显式地初始化之前调用
 > 	Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException;
 > 
@@ -347,7 +349,7 @@ XML示例
 
    `疑问2：BeanPostProcessor算是一个特殊bean，那么它们的生命周期与普通bean相同吗？（出生比普通bean早一点，因为要负责其他bean实例化的前后置处理，但其他周期都一样）`
 
-4. 自动注册其他拓展组件....
+4. 自动注册**其他拓展组件（如国际信息组件、事件转播器组件...）**....
 
 5. **实例化所有的bean --> 按照定义装配属性 --> 前置处理 --> 初始化 --> 后置处理**
 
@@ -659,21 +661,21 @@ public void destroy() {
 >    ```java
 >    // 销毁指定的单例bean
 >    public void destroySingleton(String beanName) {
->           
+>              
 >        // 删除缓存中的bean
 >        removeSingleton(beanName);
->       
+>          
 >        DisposableBean disposableBean;
->           
+>              
 >        // 从特殊的注册表中取出该bean对应的DisposableAdapter
 >        synchronized (this.disposableBeans) {
 >            disposableBean = (DisposableBean) this.disposableBeans.remove(beanName);
 >        }
->           
+>              
 >       	// 实际destroy逻辑
 >        destroyBean(beanName, disposableBean);
 >    }
->       
+>          
 >    // 销毁所有的单例bean
 >    public void destroySingletons() {
 >        if (logger.isTraceEnabled()) {
@@ -682,7 +684,7 @@ public void destroy() {
 >        synchronized (this.singletonObjects) {
 >            this.singletonsCurrentlyInDestruction = true;
 >        }
->       
+>          
 >        String[] disposableBeanNames;
 >        synchronized (this.disposableBeans) {
 >            disposableBeanNames = StringUtils.toStringArray(this.disposableBeans.keySet());
@@ -692,18 +694,18 @@ public void destroy() {
 >            // 再一个个处理删除单个的逻辑
 >            destroySingleton(disposableBeanNames[i]);
 >        }
->       
+>          
 >      	// 清除所有的缓存
 >        this.containedBeanMap.clear();
 >        this.dependentBeanMap.clear();
 >        this.dependenciesForBeanMap.clear();
->       
+>          
 >        clearSingletonCache();
 >    }
->       
+>          
 >    // 销毁一个bean的实际逻辑
 >    protected void destroyBean(String beanName, @Nullable DisposableBean bean) {
->       
+>          
 >        Set<String> dependencies;
 >        synchronized (this.dependentBeanMap) {
 >            dependencies = this.dependentBeanMap.remove(beanName);
@@ -717,7 +719,7 @@ public void destroy() {
 >                destroySingleton(dependentBeanName);
 >            }
 >        }
->       
+>          
 >        if (bean != null) {
 >            try {
 >                // 真正执行当前bean的自定义destroy方法
@@ -790,7 +792,7 @@ Spring中的xml格式
 
 
 
-### 6、Spring的事件机制（ApplicationContext提供的事件发布与监听功能）
+### 6、Spring的事件机制（ApplicationContext提供的事件发布与事件监听处理功能）
 
 > `Spring事件机制类似于MQ`，流程都是 **发布者发布事件 --> 广播者保存事件并转发给监听者 --> 监听者监听事件 --> 接收到事件后处理事件**，体现了`发布--订阅`的思想，可以在单机环境中实现一定程度的代码解耦
 >
@@ -804,18 +806,19 @@ Spring中的xml格式
 
 > `思考一个问题，事件的发布与处理，需要哪些角色呢？`
 >
-> 1. 事件对象本身
-> 2. 事件的发布者（用于发布事件）
-> 3. 事件的广播者（用于将事件转发给监听者）
-> 4. 事件的监听者（用于监听并处理事件）
+> 1. 事件对象本身 --> 用户自己实现
+> 2. 事件的发布者（用于发布事件）  --> 接口外放给用户使用
+> 3. 事件的广播者（用于将事件转发给监听者） --> spring内部调用
+> 4. 事件的监听者（用于监听并处理事件） --> 注册接口外放给用户使用，用户提供，spring内部调用
 
 #### 1、ApplicationEvent（事件实体类）
 
-顾名思义，一个事件实体对象 就`表示一个事件的发生`
+> 顾名思义，`一个事件实体对象的产生` 就`表示一个事件的发生`，一个`事件实体类`就代表`一种类型的事件`
+>
 
+<img src="https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/ApplicationEvent%E7%B1%BB%E5%9B%BE.png" alt="ApplicationEvent类图" style="zoom:50%;" />
 
-
-#### 2、ApplicationEventPublisher（事件发布者接口）
+#### 2、ApplicationEventPublisher（事件发布者接口 由ApplicationContext实现）
 
 > **提供的接口：**
 >
@@ -825,11 +828,256 @@ Spring中的xml格式
 
 > **提供的接口：**
 >
-> 1. 将监听者和某种类型事件绑定
+> 1. 将监听者（可以是一个**listener对象**也可以是一个**beanName** **从BeanFactory中获取listenerBean**）和某种类型事件绑定
 > 2. 将事件发送给绑定它的类型的监听者们
+>
+> ```java
+> public interface ApplicationEventMulticaster {
+> 
+>     /**
+>      * 添加绑定listener
+>      */
+>     void addApplicationListener(ApplicationListener<?> applicationListener);
+> 
+>     /**
+>      * 卸载指定listener
+>      */
+>     void removeApplicationListener(ApplicationListener<?> applicationListener);
+> 
+>     /**
+>      * 添加applicationListenerBean，根据beanName从容器中取出再添加
+>      */
+>     void addApplicationListenerBean(String beanName);
+> 
+>     /**
+>      * 根据beanName卸载指定listenerBean
+>      */
+>     void removeApplicationListenerBean(String beanName);
+> 
+>     /**
+>      * 广播指定的事件
+>      */
+>     void multicastEvent(ApplicationEvent event);
+> }
+> ```
+>
+> 
+>
+> **具体类图**
+>
+> <img src="https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221024101416907.png" alt="image-20221024101416907" style="zoom:50%;" />
+
+##### 3.1 AbstractApplicationEventMulticaster（抽象监听者，实现了注册监听器和判断是否监听的通用方法）
+
+由于有一个接口需要根据beanName注册监听者bean，所以需要感知BeanFactory的功能，所以实现**BeanFactoryAware**接口
+
+```java
+public abstract class AbstractApplicationEventMulticaster implements ApplicationEventMulticaster, BeanFactoryAware {
+
+    /**
+     * 用于保存绑定的监听者
+     */
+    protected final Set<ApplicationListener<?>> applicationListeners = new HashSet<>(16);
+
+    private ConfigurableBeanFactory beanFactory;
+
+    @Override
+    public void addApplicationListener(ApplicationListener<?> applicationListener) {
+        applicationListeners.add(applicationListener);
+    }
+
+    @Override
+    public void removeApplicationListener(ApplicationListener<?> applicationListener) {
+        applicationListeners.remove(applicationListener);
+    }
+
+    @Override
+    public void setBeanFactory(BeanFactory beanFactory) {
+        this.beanFactory = (ConfigurableBeanFactory) beanFactory;
+    }
+
+    /**
+     * 检查目标监听器是否对指定事件感兴趣
+     * @param listener 要检查的监听器
+     * @param event 指定事件
+     */
+    //todo 这里的判断逻辑可以优化 可以先将event解析成type 再使用type去检查
+    protected boolean supportsEvent(ApplicationListener<?> listener, ApplicationEvent event){
+        // 检查当前listener监听的事件类型（检查泛型的类型）
+        Type[] genericInterfaces = listener.getClass().getGenericInterfaces();
+
+        Class<? extends ApplicationEvent> eventType = event.getClass();
+
+        for (Type type : genericInterfaces) {
+            // 如果是参数型类型
+            if(type instanceof ParameterizedType){
+                // 获得实际代表的类型列表
+                Type[] actualTypes = ((ParameterizedType) type).getActualTypeArguments();
+                for (Type actualType : actualTypes) {
+                    String actualTypeName = actualType.getTypeName();
+                    try {
+                        if(Class.forName(actualTypeName).isAssignableFrom(eventType)){
+                            return true;
+                        }
+                    } catch (ClassNotFoundException e) {
+                        throw new BeansException("wrong event type name:"+actualTypeName,e);
+                    }
+                }
+            }
+        }
+        return false;
+    }
+}
+```
+
+##### 3.2 SimpleApplicationEventMulticaster（简单的广播器，实现了广播的基本逻辑）
+
+> **在这里要注意一个问题**
+>
+> Spring中的事件机制可以是**`同步的`**也可以是**`异步的`**（**`默认是同步`**的，需要设置**自定义的异步线程池**才是异步）
+
+```java
+public class SimpleApplicationEventMulticaster extends AbstractApplicationEventMulticaster{
+
+    /**
+     * 异步处理任务的自定义线程池
+     */
+    private Executor taskExecutor;
+
+    @Override
+    public void multicastEvent(ApplicationEvent event) {
+        for (ApplicationListener<?> listener : applicationListeners) {
+            //todo 这里的判断逻辑可以优化 可以先将event解析成type 再使用type去检查
+            if(supportsEvent(listener,event)){
+                // 查看是否有自定义的线程池
+                Executor executor = getTaskExecutor();
+
+                // 有则异步处理事件
+                if(executor != null){
+                    executor.execute(()->{
+                        invokeListener(listener,event);
+                    });
+
+                }else {
+                // 无则同步处理事件
+                    invokeListener(listener,event);
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private void invokeListener(ApplicationListener listener, ApplicationEvent event){
+        listener.onApplicationEvent(event);
+    }
+
+    protected void setTaskExecutor(Executor executor){
+        this.taskExecutor = executor;
+    }
+
+    protected Executor getTaskExecutor(){
+        return this.taskExecutor;
+    }
+}
+```
 
 #### 4、ApplicationListener（事件监听者接口）
 
 > **提供的接口：**
 >
-> 1. 处理事件
+> 1. 处理事件**（只有一个接口，做成函数式接口）**
+>
+> ```java
+> @FunctionalInterface
+> public interface ApplicationListener<E extends ApplicationEvent> extends EventListener {
+> 
+>     /**
+>      * 处理指定类型事件的函数式接口
+>      */
+>     void onApplicationEvent(E event);
+> 
+> }
+> ```
+
+
+
+#### 5、更新ApplicationContext接口及其抽象实现AbstractApplicationContext
+
+> 1、ApplicationContext需要提供`发布事件`的功能**（面向用户）** --> 实现 `ApplicationEventPublish` 接口
+>
+> 2、ApplicationContext需要内置一个 `ApplicationEventMulticaster对象（内部创建）`，方便对事件进行传播**（面向Spring内部使用）**
+>
+> 3、监听器ApplicationListener要`如何注册进ApplicationContext，如何绑定ApplicationEventMulticaster？`
+>
+> 除了`Spring内置事件所需的ApplicationListener以外`，其余的都是`用户按需提供`的，而ApplicationListener会作为`特殊Bean`存留在IOC容器中。
+>
+> 所以`用户提供的ApplicationListener`会随着初始化上下文中的加载Bean定义、预实例化所有Bean对象 从而注册进上下文当中。但`绑定到ApplicationEventMulticaster`则需要在Bean实例化后通过`BeanPostProcessor`来处理
+>
+> （Spring内部提供了一个叫`ApplicationListenerDetector`的BeanPostProcessor来处理这件事）
+
+
+
+**简单的ApplicationListenerDetector（只在bean实例化后处理）**
+
+```java
+public class ApplicationListenerDetector extends ApplicationContextAwareProcessor implements BeanPostProcessor {
+
+    public ApplicationListenerDetector(ConfigurableApplicationContext applicationContext) {
+        super(applicationContext);
+    }
+
+    @Override
+    public <T> T postProcessAfterInitialization(T bean, String beanName) {
+        // 检查是否是监听器
+        if(bean instanceof ApplicationListener){
+            //若是 则注册进上下文中
+            applicationContext.addApplicationListener((ApplicationListener<?>) bean);
+        }
+        return bean;
+    }
+}
+```
+
+在上下文刷新时，bean实例化之前 将**ApplicationListenerDetector**注入上下文
+
+```java
+public void refresh() {
+
+    // 获取BeanFactory
+    ConfigurableListableBeanFactory beanFactory = obtainBeanFactory();
+
+    // 为新的内置BeanFactory填充特殊内置属性
+    prepareBeanFactory(beanFactory);
+
+    // 在实例化bean之前调用beanFactoryPostProcessor 看是否需要修改beanDefinition
+    invokeBeanFactoryPostProcessors(beanFactory);
+
+    // 注册BeanPostProcessors进当前内置的BeanFactory
+    registerBeanPostProcessors(beanFactory);
+
+    //---- 注册其他上下文应提供的拓展组件 ---
+
+    //注册事件广播器
+    initApplicationEventMulticaster();
+
+    // ----------------------
+
+    // 预实例化所有的bean
+    beanFactory.preInitiateSingletons();
+}
+
+protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
+
+    beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
+    beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
+}
+```
+
+
+
+**至此，Spring的事件机制基本雏形就做好了，但现在支持注入事件监听器的方式只有**
+
+1. 通过ApplicationContext接口提供的 **addApplicationListener** `手动注入`
+2. 通过XML配置文件配置**addApplicationListenerBean**，在启动上下文时 `自动注入`
+3. **`后面再开发 注解驱动配置（自动注入）`**
+

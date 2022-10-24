@@ -1,6 +1,7 @@
 package sillybaka.springframework.context.support;
 
-import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactoryBean;
+import sillybaka.springframework.beans.factory.ConfigurableListableBeanFactory;
+import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactory;
 
 /**
  *
@@ -13,7 +14,7 @@ import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactor
  **/
 public abstract class AbstractRefreshableApplicationContext extends AbstractApplicationContext{
 
-    private volatile DefaultListableBeanFactoryBean beanFactory;
+    private volatile DefaultListableBeanFactory beanFactory;
 
     @Override
     public void refreshBeanFactory() {
@@ -23,7 +24,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
             closeBeanFactory();
         }
         // 创建一个新的BeanFactory
-        DefaultListableBeanFactoryBean beanFactory = createBeanFactory();
+        DefaultListableBeanFactory beanFactory = createBeanFactory();
 
         // 加载所有的beanDefinition  todo 这里是否包含特殊bean？不包含
         loadBeanDefinitions(beanFactory);
@@ -31,13 +32,13 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
         this.beanFactory = beanFactory;
     }
 
-    public DefaultListableBeanFactoryBean createBeanFactory(){
+    public DefaultListableBeanFactory createBeanFactory(){
         //todo 更改为用父级上下文的内置BeanFactory作为本上下文的内置BeanFactory的父亲
-        return new DefaultListableBeanFactoryBean();
+        return new DefaultListableBeanFactory();
     }
 
     @Override
-    protected DefaultListableBeanFactoryBean getBeanFactory() {
+    protected ConfigurableListableBeanFactory getBeanFactory() {
         return beanFactory;
     }
 
@@ -52,6 +53,6 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
     /**
      * 将BeanDefinition加载到指定的BeanFactory中。此功能委托给BeanDefinitionReader来实现
      */
-    protected abstract void loadBeanDefinitions(DefaultListableBeanFactoryBean beanFactory);
+    protected abstract void loadBeanDefinitions(DefaultListableBeanFactory beanFactory);
 
 }

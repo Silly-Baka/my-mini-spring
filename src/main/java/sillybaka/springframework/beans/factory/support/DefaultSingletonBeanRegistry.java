@@ -78,4 +78,14 @@ public class DefaultSingletonBeanRegistry implements SingletonBeanRegistry {
             this.disposableBeans.putIfAbsent(beanName,bean);
         }
     }
+
+    public void destroySingleton(String beanName){
+        singletonObjects.remove(beanName);
+
+        DisposableBean disposableBean;
+        synchronized (this.disposableBeans){
+            disposableBean = (DisposableBean)disposableBeans.remove(beanName);
+        }
+        disposableBean.destroy();
+    }
 }

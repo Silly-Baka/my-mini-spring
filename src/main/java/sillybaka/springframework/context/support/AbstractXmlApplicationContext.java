@@ -1,6 +1,6 @@
 package sillybaka.springframework.context.support;
 
-import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactoryBean;
+import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactory;
 import sillybaka.springframework.beans.factory.support.XmlBeanDefinitionReader;
 import sillybaka.springframework.core.io.DefaultResourceLoader;
 import sillybaka.springframework.core.io.Resource;
@@ -20,7 +20,7 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableA
      * @param beanFactory 要加载进的beanFactory
      */
     @Override
-    protected void loadBeanDefinitions(DefaultListableBeanFactoryBean beanFactory) {
+    protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) {
         XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(new DefaultResourceLoader(), beanFactory);
 
         beanDefinitionReader.loadBeanDefinitions(getConfigResources());

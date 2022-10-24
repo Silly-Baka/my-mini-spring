@@ -12,8 +12,7 @@ import sillybaka.springframework.context.ConfigurableApplicationContext;
  **/
 public class ApplicationContextAwareProcessor implements BeanPostProcessor {
 
-    private final ConfigurableApplicationContext applicationContext;
-
+    protected final ConfigurableApplicationContext applicationContext;
 
     public ApplicationContextAwareProcessor(ConfigurableApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
