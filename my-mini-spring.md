@@ -269,7 +269,7 @@ XML示例
 
 
 
-> **BeanPostProcessor** 也是Spring提供的**容器拓展机制**，该接口允许我们在 **Bean对象实例化以及依赖注入完成后**，但在**显式地调用初始化方法的前后** 添加我们自己的逻辑。**`（和Netty中的handler相似，对bean依次执行BeanPostProcessor链上的每一个处理器 初始化前执行相当于入站处理器，初始化后执行相当于出站处理器）`**
+> **BeanPostProcessor** 也是Spring提供的**容器拓展机制**，该接口允许我们在 **Bean对象实例化以及依赖注入完成后**，但在**显式地调用初始化方法的前后** 添加我们自己的逻辑。**`（和Netty中的handler相似，对bean依次执行BeanPostProcessor链上的每一个处理器 初始化前执行相当于入站处理器，初始化后执行相当于出站处理器 ！！！ 职责链模式 ！！！）`**
 >
 > ​	**`BeanPostProcessor应该拥有各自执行的优先级（因为是一条处理链）`**
 >
@@ -661,21 +661,21 @@ public void destroy() {
 >    ```java
 >    // 销毁指定的单例bean
 >    public void destroySingleton(String beanName) {
->              
+>                       
 >        // 删除缓存中的bean
 >        removeSingleton(beanName);
->          
+>                   
 >        DisposableBean disposableBean;
->              
+>                       
 >        // 从特殊的注册表中取出该bean对应的DisposableAdapter
 >        synchronized (this.disposableBeans) {
 >            disposableBean = (DisposableBean) this.disposableBeans.remove(beanName);
 >        }
->              
+>                       
 >       	// 实际destroy逻辑
 >        destroyBean(beanName, disposableBean);
 >    }
->          
+>                   
 >    // 销毁所有的单例bean
 >    public void destroySingletons() {
 >        if (logger.isTraceEnabled()) {
@@ -684,7 +684,7 @@ public void destroy() {
 >        synchronized (this.singletonObjects) {
 >            this.singletonsCurrentlyInDestruction = true;
 >        }
->          
+>                   
 >        String[] disposableBeanNames;
 >        synchronized (this.disposableBeans) {
 >            disposableBeanNames = StringUtils.toStringArray(this.disposableBeans.keySet());
@@ -694,18 +694,18 @@ public void destroy() {
 >            // 再一个个处理删除单个的逻辑
 >            destroySingleton(disposableBeanNames[i]);
 >        }
->          
+>                   
 >      	// 清除所有的缓存
 >        this.containedBeanMap.clear();
 >        this.dependentBeanMap.clear();
 >        this.dependenciesForBeanMap.clear();
->          
+>                   
 >        clearSingletonCache();
 >    }
->          
+>                   
 >    // 销毁一个bean的实际逻辑
 >    protected void destroyBean(String beanName, @Nullable DisposableBean bean) {
->          
+>                   
 >        Set<String> dependencies;
 >        synchronized (this.dependentBeanMap) {
 >            dependencies = this.dependentBeanMap.remove(beanName);
@@ -719,7 +719,7 @@ public void destroy() {
 >                destroySingleton(dependentBeanName);
 >            }
 >        }
->          
+>                   
 >        if (bean != null) {
 >            try {
 >                // 真正执行当前bean的自定义destroy方法
@@ -1081,3 +1081,76 @@ protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 2. 通过XML配置文件配置**addApplicationListenerBean**，在启动上下文时 `自动注入`
 3. **`后面再开发 注解驱动配置（自动注入）`**
 
+
+
+
+
+# AOP篇
+
+## 1、前言
+
+> **在学习AOP篇之前，我们先要了解几个概念**
+>
+> **`1、什么是AOP`**
+>
+> `AOP`(**Aspect Oriented Programing**)是指 `面向切面编程`，**从逻辑层面上** 就是在一个类、一个方法、一段代码`中间切开一个面，再把切面放入这个缺口中，而切面中则封装了我们提供的拓展逻辑`，**从实现层面**上是通过`预编译方式（静态代理）或者是运行期期间动态代理`实现`功能扩展`，而不用修改源代码。通过AOP技术，可以实现一种通用的逻辑解耦，解决一些系统层面的问题，如**日志，事务，权限**等，从而实现高可用的可重用性和可维护性。
+>
+> **`2、AOP和OOP的区别`**
+>
+> `OOP（面向对象编程）`通过引入封装、继承和多态性等概念来建立一种对象层次结构，用以模拟公共行为的一个集合。当我们需要`为分散的对象引入公共行为`的时候，OOP则显得无能为力。也就是说，`OOP允许你定义从上到下的关系`，但`并不适合定义从左到右的关系`。例如日志功能。日志代码往往水平地散布在所有对象层次中，而与它所散布到的对象的核心功能毫无关系。对于其他类型的代码，如安全性、异常处理和透明的持续性也是如此。**`这种散布在各处的无关的代码被称为横切（cross-cutting）代码，在OOP设计中，它导致了大量代码的重复，而不利于各个模块的复用。`**
+>
+> 而`AOP`的出现就是为了解决这样的问题，AOP恰好就利用了`“横切”`的技术
+>
+> **AOP代表的是一个横向的关系，如果说“对象”是一个空心的圆柱体，其中封装的是对象的属性和行为；那么面向切面编程的方法，就仿佛一把利刃，将这些空心圆柱体剖开，以获得其内部的消息 并往里面加盐加料。而剖开的切面，也就是所谓的“方面”了。然后它又以巧夺天功的妙手将这些剖开的切面复原，不留痕迹。** **`（在不修改代码的基础上增强代码功能，符合开闭原则）`**
+>
+> **`3、AOP基本术语`**
+>
+> - **Advice（通知）**：表示我们对原有功能`需要添加的拓展功能逻辑（增强）`，通知`按照触发范围`又分为前置、后置、环绕、异常、返回值等类型
+> - **JoinPoint（连接点、织入点）**：用于`连接通知的具体的点`，可以是**程序执行过程中的任意位置**，比如说可以在方法执行前、方法执行后、抛出异常等等
+> - **PointCut（切入点、横切点）**：按照定义`可以织入切面的点`，是多个`特定的连接点的集合`，在`Spring中`表现为一个`匹配连接点的表达式`（更具体的说可以是匹配特定的方法，而这个方法拥有多个连接点）
+> - **Aspect（切面）**：切面可以是`一个类`，这个类里面`定义了切入点及其对应的通知、以及它们之间的具体连接关系`
+> - **织入**：织入是指将增强的 `通知 连接到 具体的连接点 上的过程`；
+
+
+
+## 2、简单的AOP实现（重要在于整个代理模型，而不在于代码实现）
+
+### 2.1 PointCut（切入点 这里只实现表达式类型的切入点）
+
+> **`在Spring AOP中，是基于代理的模型来处理AOP的，所以也就只支持在方法级别上的切入点`**
+>
+> 所以Spring中的一个PointCut通常由一个`切入点表达式`组成，而该表达式就匹配了其定义的指定方法
+>
+> 比如说`execution(* com.silly.baka.aop.*.*(..))`，该表达式就`匹配了 com.silly.baka.aop包下的所有类的所有权限的任意参数的方法`
+>
+> 所以在PointCut中，要包含**`类过滤器，方法过滤器等方法`**
+
+这里我只实现了简单的表达式切入点，并且使用AspectJ提供的api来实现表达式分析
+
+![image-20221027214207288](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221027214207288.png)
+
+
+
+### 2.2 Advice（通知）
+
+
+
+### 2.3 Aspect（切面）
+
+
+
+### 2.4 织入（静态代理和动态代理）
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 注解驱动篇
