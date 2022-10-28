@@ -661,21 +661,21 @@ public void destroy() {
 >    ```java
 >    // 销毁指定的单例bean
 >    public void destroySingleton(String beanName) {
->                       
+>                             
 >        // 删除缓存中的bean
 >        removeSingleton(beanName);
->                   
+>                         
 >        DisposableBean disposableBean;
->                       
+>                             
 >        // 从特殊的注册表中取出该bean对应的DisposableAdapter
 >        synchronized (this.disposableBeans) {
 >            disposableBean = (DisposableBean) this.disposableBeans.remove(beanName);
 >        }
->                       
+>                             
 >       	// 实际destroy逻辑
 >        destroyBean(beanName, disposableBean);
 >    }
->                   
+>                         
 >    // 销毁所有的单例bean
 >    public void destroySingletons() {
 >        if (logger.isTraceEnabled()) {
@@ -684,7 +684,7 @@ public void destroy() {
 >        synchronized (this.singletonObjects) {
 >            this.singletonsCurrentlyInDestruction = true;
 >        }
->                   
+>                         
 >        String[] disposableBeanNames;
 >        synchronized (this.disposableBeans) {
 >            disposableBeanNames = StringUtils.toStringArray(this.disposableBeans.keySet());
@@ -694,18 +694,18 @@ public void destroy() {
 >            // 再一个个处理删除单个的逻辑
 >            destroySingleton(disposableBeanNames[i]);
 >        }
->                   
+>                         
 >      	// 清除所有的缓存
 >        this.containedBeanMap.clear();
 >        this.dependentBeanMap.clear();
 >        this.dependenciesForBeanMap.clear();
->                   
+>                         
 >        clearSingletonCache();
 >    }
->                   
+>                         
 >    // 销毁一个bean的实际逻辑
 >    protected void destroyBean(String beanName, @Nullable DisposableBean bean) {
->                   
+>                         
 >        Set<String> dependencies;
 >        synchronized (this.dependentBeanMap) {
 >            dependencies = this.dependentBeanMap.remove(beanName);
@@ -719,7 +719,7 @@ public void destroy() {
 >                destroySingleton(dependentBeanName);
 >            }
 >        }
->                   
+>                         
 >        if (bean != null) {
 >            try {
 >                // 真正执行当前bean的自定义destroy方法
@@ -1101,13 +1101,13 @@ protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 >
 > 而`AOP`的出现就是为了解决这样的问题，AOP恰好就利用了`“横切”`的技术
 >
-> **AOP代表的是一个横向的关系，如果说“对象”是一个空心的圆柱体，其中封装的是对象的属性和行为；那么面向切面编程的方法，就仿佛一把利刃，将这些空心圆柱体剖开，以获得其内部的消息 并往里面加盐加料。而剖开的切面，也就是所谓的“方面”了。然后它又以巧夺天功的妙手将这些剖开的切面复原，不留痕迹。** **`（在不修改代码的基础上增强代码功能，符合开闭原则）`**
+> **AOP代表的是一个横向的关系，如果说“对象”是一个空心的圆柱体，其中封装的是对象的属性和行为；那么面向切面编程的方法，就仿佛一把利刃，将这些空心圆柱体剖开，以获得其内部的消息 并往里面加盐加料。而`剖开的面以及我们往里面添加的料`，也就是所谓的`“切面”`了。然后它又将这些剖开的切面复原，不留痕迹。** **`（在不修改代码的基础上增强代码功能，符合开闭原则）`**
 >
 > **`3、AOP基本术语`**
 >
 > - **Advice（通知）**：表示我们对原有功能`需要添加的拓展功能逻辑（增强）`，通知`按照触发范围`又分为前置、后置、环绕、异常、返回值等类型
 > - **JoinPoint（连接点、织入点）**：用于`连接通知的具体的点`，可以是**程序执行过程中的任意位置**，比如说可以在方法执行前、方法执行后、抛出异常等等
-> - **PointCut（切入点、横切点）**：按照定义`可以织入切面的点`，是多个`特定的连接点的集合`，在`Spring中`表现为一个`匹配连接点的表达式`（更具体的说可以是匹配特定的方法，而这个方法拥有多个连接点）
+> - **PointCut（切入点、横切点）**：按照定义`可以织入切面的点`，是多个`特定的连接点的集合`，在`Spring中`表现为一个`匹配连接点的表达式`（更具体的说可以是匹配特定的方法，而这个方法拥有**多个连接点**）
 > - **Aspect（切面）**：切面可以是`一个类`，这个类里面`定义了切入点及其对应的通知、以及它们之间的具体连接关系`
 > - **织入**：织入是指将增强的 `通知 连接到 具体的连接点 上的过程`；
 
@@ -1115,8 +1115,10 @@ protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 
 ## 2、简单的AOP实现（重要在于整个代理模型，而不在于代码实现）
 
-### 2.1 PointCut（切入点 这里只实现表达式类型的切入点）
+### 2.1 Pointcut（切入点 这里只实现表达式类型的切入点）
 
+> **Pointcut是Spring对AOP切点的顶层抽象**
+>
 > **`在Spring AOP中，是基于代理的模型来处理AOP的，所以也就只支持在方法级别上的切入点`**
 >
 > 所以Spring中的一个PointCut通常由一个`切入点表达式`组成，而该表达式就匹配了其定义的指定方法
@@ -1131,15 +1133,123 @@ protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 
 
 
-### 2.2 Advice（通知）
+### 2.2 Advice和`Advisor`
+
+**Advice是AOP联盟提供的一个用于通知的标识接口，是`AOP联盟中对通知的顶层抽象`**
+
+> **Advisor是在此基础上更加`通用的一个通知接口，是Spring AOP中切面的最小单位（一个Advisor是一个小切面包含了一个Pointcut以及一个advice）`，适用于所有类型的通知，并且可以`用于管理Advice和Pointcut`**
+>
+> Advisor能够`提高切面的可重用性`，它`将一个切面划分为了多个小切面`，`Spring以小切面为单位来管理AOP`
+
+```java
+public interface Advisor {
+
+    /**
+     * 空白的通知对象
+     */
+    Advice EMPTY_INSTANCE = new Advice() {};
+
+    /**
+     * 若配置了通知则返回通知对象，否则返回空白对象
+     */
+    Advice getAdvice();
+}
+```
+
+**Spring中Advisor的继承体系如下**
+
+![image-20221028134633083](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221028134633083.png)
+
+`PointcutAdvisor`：适用于`几乎所有类型`的pointcut，以及几乎所有类型的advice
+
+`IntroductionAdvisor`：只适用于`类级别`的pointcut和advice
 
 
 
-### 2.3 Aspect（切面）
+### 2.3 Interceptor（拦截器）
+
+> 这个接口代表一个**通用的拦截器**。 通用拦截器可以**拦截**基本程序中发生的**运行时事件**。 这些**`事件由（具体化）连接点实现，所以拦截器用于拦截连接点`**。
+>  运行时连接点可以是调用、字段访问、异常… 该接口不直接使用。 使用子接口拦截特定事件。
+>
+> **`Interceptor用于拦截连接点，并在拦截的连接点处执行Advice的逻辑（实际上就是一个特定处理器）`**
+
+### 2.4 MethodInvocation（方法调用）
+
+> `MethodInvocation`接口是AOP联盟对 `方法调用` 的抽象，本质上是一个`连接点`，可以`被拦截器拦截`，在方法被调用时传递`MethodInvocation`给拦截器
+
+![在这里插入图片描述](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/watermark%252Ctype_ZHJvaWRzYW5zZmFsbGJhY2s%252Cshadow_50%252Ctext_Q1NETiBATXIuQVo%253D%252Csize_20%252Ccolor_FFFFFF%252Ct_70%252Cg_se%252Cx_16.png)
 
 
 
-### 2.4 织入（静态代理和动态代理）
+### ==2.5 AdvisorAdapter和MethodBeforeAdviceAdapter==
+
+> **`AdvisorAdapter`**是Spring提供的用于**`拓展`**外部**`自定义Advice和Advisor`**的顶层接口
+>
+> ```java
+> public interface AdvisorAdapter {
+> 
+>    // 当前适配器是否支持目标类型的通知，能否为它创建相应的拦截器
+>    boolean supportsAdvice(Advice advice);
+> 
+>    // 创建并获取指定Advisor所适配的拦截器
+>    MethodInterceptor getInterceptor(Advisor advisor);
+> }
+> ```
+>
+> **`MethodBeforeAdviceAdapter`**是Spring内部用于**拓展MethodBeforeAdvice**这种类型的通知而创建的**适配器类**
+>
+> ```java
+> class MethodBeforeAdviceAdapter implements AdvisorAdapter, Serializable {
+> 
+>    @Override
+>    public boolean supportsAdvice(Advice advice) {
+>       return (advice instanceof MethodBeforeAdvice);
+>    }
+> 
+>    @Override
+>    public MethodInterceptor getInterceptor(Advisor advisor) {
+>       MethodBeforeAdvice advice = (MethodBeforeAdvice) advisor.getAdvice();
+>       return new MethodBeforeAdviceInterceptor(advice);
+>    }
+> 
+> }
+> ```
+>
+> **`MethodBeforeAdviceInterceptor`**也是一个适配器类，将`MethodBeforeAdvice`及其`拦截器`适配到一起，方便拦截器执行通知的逻辑
+
+
+
+### 2.6 织入（动态代理）
+
+> 在前面我们定义了切入点（连接点）和通知，那么我们要`如何将通知织入连接点`呢？
+>
+> 采用**`动态代理`**的方式，根据提供的`通知、连接点以及它们之间的关系（还要有被织入的源方法、源对象等等很多东西）`，来创建一个**`代理对象`**
+
+#### 2.5.1 Aop代理的配置类（AdvisedSupport)
+
+> 为了避免动态代理类中`用于配置Aop代理`的代码过于冗余，基于职责划分，诞生了此类 `AdvisedSupport`
+>
+> `AdvisedSupport`类中必须提供的属性：**动态代理的方式**、**将被Aop代理的连接点源对象**、**绑定在该连接点的通知链** 等等
+
+
+
+#### 2.5.2 基于JDK动态代理实现的Aop代理
+
+`Spring中使用JDK动态代理处理Aop代理的流程如下`
+
+![image-20221028131540034](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221028131540034.png)
+
+`Spring中JdkDynamicAopProxy类 invoke方法（代理后执行的方法）的部分源码`
+
+![image-20221028131830700](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221028131830700.png)
+
+
+
+#### 2.5.3 基于Cglib动态代理实现的Aop代理
+
+
+
+### 2.6
 
 
 
