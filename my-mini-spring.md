@@ -661,21 +661,21 @@ public void destroy() {
 >    ```java
 >    // 销毁指定的单例bean
 >    public void destroySingleton(String beanName) {
->                                
+>                                   
 >        // 删除缓存中的bean
 >        removeSingleton(beanName);
->                            
+>                               
 >        DisposableBean disposableBean;
->                                
+>                                   
 >        // 从特殊的注册表中取出该bean对应的DisposableAdapter
 >        synchronized (this.disposableBeans) {
 >            disposableBean = (DisposableBean) this.disposableBeans.remove(beanName);
 >        }
->                                
+>                                   
 >       	// 实际destroy逻辑
 >        destroyBean(beanName, disposableBean);
 >    }
->                            
+>                               
 >    // 销毁所有的单例bean
 >    public void destroySingletons() {
 >        if (logger.isTraceEnabled()) {
@@ -684,7 +684,7 @@ public void destroy() {
 >        synchronized (this.singletonObjects) {
 >            this.singletonsCurrentlyInDestruction = true;
 >        }
->                            
+>                               
 >        String[] disposableBeanNames;
 >        synchronized (this.disposableBeans) {
 >            disposableBeanNames = StringUtils.toStringArray(this.disposableBeans.keySet());
@@ -694,18 +694,18 @@ public void destroy() {
 >            // 再一个个处理删除单个的逻辑
 >            destroySingleton(disposableBeanNames[i]);
 >        }
->                            
+>                               
 >      	// 清除所有的缓存
 >        this.containedBeanMap.clear();
 >        this.dependentBeanMap.clear();
 >        this.dependenciesForBeanMap.clear();
->                            
+>                               
 >        clearSingletonCache();
 >    }
->                            
+>                               
 >    // 销毁一个bean的实际逻辑
 >    protected void destroyBean(String beanName, @Nullable DisposableBean bean) {
->                            
+>                               
 >        Set<String> dependencies;
 >        synchronized (this.dependentBeanMap) {
 >            dependencies = this.dependentBeanMap.remove(beanName);
@@ -719,7 +719,7 @@ public void destroy() {
 >                destroySingleton(dependentBeanName);
 >            }
 >        }
->                            
+>                               
 >        if (bean != null) {
 >            try {
 >                // 真正执行当前bean的自定义destroy方法
@@ -1231,13 +1231,7 @@ public interface Advisor {
 >
 > `AdvisedSupport`类中必须提供的属性：**动态代理的方式**、**将被Aop代理的连接点源对象**、**绑定在该连接点的通知链** 等等
 
-
-
 #### 2.5.2 基于JDK动态代理实现的Aop代理
-
-`Spring中使用JDK动态代理处理Aop代理的流程如下`
-
-![image-20221028131540034](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221028131540034.png)
 
 `Spring中JdkDynamicAopProxy类 invoke方法（代理后执行的方法）的部分源码`
 
@@ -1245,9 +1239,142 @@ public interface Advisor {
 
 
 
+**从源码可知动态代理的处理流程如下：**
+
+`Spring中使用JDK动态代理处理Aop代理的流程如下`
+
+![image-20221028131540034](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221028131540034.png)
+
+
+
+**代码实现**
+
+```java
+public class JdkDynamicAopProxy implements AopProxy,InvocationHandler{
+
+    /**
+     * 用于配置代理类
+     */
+    private final AdvisedSupport advisedSupport;
+
+    public JdkDynamicAopProxy(AdvisedSupport advisedSupport) {
+        this.advisedSupport = advisedSupport;
+    }
+
+    @Override
+    public Object getProxy() {
+        return Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(),advisedSupport.getInterfaces(), this);
+    }
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        //todo 需要通知的具体逻辑以及执行时机 --> 需要通知对象
+
+        TargetSource targetSource = advisedSupport.getTargetSource();
+        Object target = targetSource.getTarget();
+
+        Class<?> targetClass = targetSource.getTargetClass();
+
+        Class<?> actualClass = (targetClass != null ? targetClass : target.getClass());
+
+        Object retVal;
+
+        // 获取连接点目标对象的拦截器链
+        List<Object> chain = advisedSupport.getAdvisorChainFactory().getInterceptorsAndDynamicInterceptionAdvice(advisedSupport, method, actualClass);
+
+        // 若拦截器链为空 则直接执行原方法
+        if(chain.isEmpty()){
+
+            method.setAccessible(true);
+            retVal = method.invoke(target,args);
+
+        }else{
+        // 否则执行拦截器链 再执行原方法
+            ReflectiveMethodInvocation reflectiveMethodInvocation = new ReflectiveMethodInvocation(proxy, target, method, args, chain);
+            retVal = reflectiveMethodInvocation.proceed();
+        }
+
+        return retVal;
+    }
+}
+```
+
+
+
 #### 2.5.3 基于Cglib动态代理实现的Aop代理
 
+这里的流程和Jdk动态代理类似，但不同的是，在Cglib中可以通过 `proxy.invoke()`这个方法来`调用原方法`，以这种方法调用方法`比使用反射调用效率更高`
 
+**代码实现**
+
+```java
+public class CglibAopProxy implements AopProxy{
+
+    private final AdvisedSupport advisedSupport;
+
+    public CglibAopProxy(AdvisedSupport config){
+        this.advisedSupport = config;
+    }
+
+    @Override
+    public Object getProxy() {
+
+        Enhancer enhancer = new Enhancer();
+        enhancer.setSuperclass(advisedSupport.getTargetClass());
+        enhancer.setCallback(new CglibMethodInterceptor());
+
+        return enhancer.create();
+    }
+
+    private class CglibMethodInterceptor implements MethodInterceptor{
+
+        /**
+         * 这里的实现和jdk动态代理一模一样
+         */
+        @Override
+        public Object intercept(Object obj, Method method, Object[] args, MethodProxy proxy) throws Throwable {
+            TargetSource targetSource = advisedSupport.getTargetSource();
+            Object target = targetSource.getTarget();
+            Class<?> targetClass = targetSource.getTargetClass();
+
+            List<Object> chain = advisedSupport.getAdvisorChainFactory().getInterceptorsAndDynamicInterceptionAdvice(advisedSupport, method, targetClass);
+
+            CglibMethodInvocation methodInvocation = new CglibMethodInvocation(obj, target, method, args, chain, proxy);
+
+            Object retVal;
+
+            if(chain.isEmpty()){
+                retVal = methodInvocation.invokeJoinPoint();
+            }else {
+                retVal = methodInvocation.proceed();
+            }
+            return retVal;
+        }
+    }
+
+    private class CglibMethodInvocation extends ReflectiveMethodInvocation{
+
+        private final MethodProxy methodProxy;
+
+        public CglibMethodInvocation(Object proxy, Object target, Method method, Object[] args, List<Object> interceptorAndAdviceList,
+                                     MethodProxy methodProxy) {
+            super(proxy, target, method, args, interceptorAndAdviceList);
+            this.methodProxy = methodProxy;
+        }
+
+        /**
+         * 利用Cglib提供的原方法调用 效率比反射调用快
+         */
+        @Override
+        public Object invokeJoinPoint() {
+            try {
+                return methodProxy.invoke(this.target,this.args);
+            } catch (Throwable e) {
+                throw new AopConfigException("被代理的原方法执行失败",e);
+            }
+        }
+    }
+}
+```
 
 #### 2.5.4 Jdk动态代理和Cglib动态代理的底层原理
 
@@ -1429,7 +1556,7 @@ public static Object newProxyInstance(ClassLoader loader, Class<?>[] interfaces,
 ```
 **`Jdk动态代理的本质`**
 
-Jdk动态代理为被代理类**`创建了一个代理类`**，这个代理类`继承了Proxy类、实现了被代理类实现的所有接口`
+Jdk动态代理为被代理类**`创建了一个代理类`**，这个代理类**`继承了Proxy类、实现了被代理类实现的所有接口`**
 
 代理类中`所有接口实现方法的逻辑`，都是`调用`创建代理对象时传入的**`InvocationHanlder所实现的invoke()方法`**
 
@@ -1437,11 +1564,19 @@ Jdk动态代理为被代理类**`创建了一个代理类`**，这个代理类`�
 
 ##### 2、Cglib动态代理
 
+> cglib的原理是通过`字节码技术`为一个类**`创建子类`**，并在子类中采用**`方法拦截`**的技术**`拦截所有父类方法的调用`**。由于是`通过创建子类来代理父类`，因此不能代理被**`final`**修饰的类(代理`final`修饰的类会抛异常，代理`final`修饰的方法只会原样执行委托类的方法而不能做任何拦截)。
+>
+> 但是cglib有一个很致命的缺点：cglib的底层是采用著名的`ASM`[字节码](https://so.csdn.net/so/search?q=字节码&spm=1001.2101.3001.7020)生成框架，使用字节码技术生成代理类，也就是通过操作字节码来生成的新的.class文件，而我们在`android`中加载的是`优化后的.dex文件`，也就是说我们需要可以动态生成.dex文件代理类，因此cglib在`Android`中是不能使用的。
 
 
-### 2.6
 
+#### ==2.5.5 AOP与动态代理的关系==
 
+> `AOP`是**面向切面编程**，是一种`编程思想`，是面向对象编程的`补充`
+>
+> `动态代理`是一种在程序运行时，创建目标对象的`代理对象`，并对目标对象中的方法进行`功能性增强`的`一种技术`
+>
+> 在`Spring AOP`中，实现了动态代理来实现AOP，动态代理只是AOP的一种`实现方式`
 
 
 
