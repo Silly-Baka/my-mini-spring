@@ -22,6 +22,7 @@ public class DefaultAdvisorAdapterRegistry implements AdvisorAdapterRegistry{
     public DefaultAdvisorAdapterRegistry(){
         // 注册内置的adapter
         this.adapters.add(new MethodBeforeAdviceAdapter());
+        this.adapters.add(new MethodAfterAdviceAdapter());
     }
 
     @Override

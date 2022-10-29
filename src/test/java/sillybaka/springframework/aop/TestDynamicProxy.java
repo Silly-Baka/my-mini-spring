@@ -19,10 +19,14 @@ public class TestDynamicProxy {
         TargetSource targetSource = new TargetSource(new HelloServiceImpl());
         AdvisedSupport advisedSupport = new AdvisedSupport(targetSource);
 
-        //添加切入点和通知
+        //添加前置通知
         AspectJExpressionPointcutAdvisor advisor = new AspectJExpressionPointcutAdvisor(new TestMethodBeforeAdvice(),
                 new AspectJExpressionPointcut("execution(* sillybaka.springframework.aop.*.*(..))"));
         advisedSupport.addAdvisor(advisor);
+        // 添加后置通知
+        AspectJExpressionPointcutAdvisor afterAdvisor = new AspectJExpressionPointcutAdvisor(new TestMethodAfterAdvice(),
+                new AspectJExpressionPointcut("execution(* sillybaka.springframework.aop.*.*(..))"));
+        advisedSupport.addAdvisor(afterAdvisor);
         advisedSupport.setProxyTargetClass(false);
 
         AopProxyFactory aopProxyFactory = new DefaultAopProxyFactory();
@@ -40,10 +44,14 @@ public class TestDynamicProxy {
         AdvisedSupport advisedSupport = new AdvisedSupport(targetSource);
         advisedSupport.setProxyTargetClass(true);
 
-        // 添加切入点
-        AspectJExpressionPointcutAdvisor advisor = new AspectJExpressionPointcutAdvisor(new TestMethodBeforeAdvice(),
+        // 添加前置通知
+        AspectJExpressionPointcutAdvisor beforeAdvisor = new AspectJExpressionPointcutAdvisor(new TestMethodBeforeAdvice(),
                 new AspectJExpressionPointcut("execution(* sillybaka.springframework.aop.*.*(..))"));
-        advisedSupport.addAdvisor(advisor);
+        advisedSupport.addAdvisor(beforeAdvisor);
+        // 添加后置通知
+        AspectJExpressionPointcutAdvisor afterAdvisor = new AspectJExpressionPointcutAdvisor(new TestMethodAfterAdvice(),
+                new AspectJExpressionPointcut("execution(* sillybaka.springframework.aop.*.*(..))"));
+        advisedSupport.addAdvisor(afterAdvisor);
 
         AopProxyFactory proxyFactory = new DefaultAopProxyFactory();
         AopProxy aopProxy = proxyFactory.createAopProxy(advisedSupport);
