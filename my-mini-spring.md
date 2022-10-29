@@ -661,21 +661,21 @@ public void destroy() {
 >    ```java
 >    // 销毁指定的单例bean
 >    public void destroySingleton(String beanName) {
->                             
+>                                
 >        // 删除缓存中的bean
 >        removeSingleton(beanName);
->                         
+>                            
 >        DisposableBean disposableBean;
->                             
+>                                
 >        // 从特殊的注册表中取出该bean对应的DisposableAdapter
 >        synchronized (this.disposableBeans) {
 >            disposableBean = (DisposableBean) this.disposableBeans.remove(beanName);
 >        }
->                             
+>                                
 >       	// 实际destroy逻辑
 >        destroyBean(beanName, disposableBean);
 >    }
->                         
+>                            
 >    // 销毁所有的单例bean
 >    public void destroySingletons() {
 >        if (logger.isTraceEnabled()) {
@@ -684,7 +684,7 @@ public void destroy() {
 >        synchronized (this.singletonObjects) {
 >            this.singletonsCurrentlyInDestruction = true;
 >        }
->                         
+>                            
 >        String[] disposableBeanNames;
 >        synchronized (this.disposableBeans) {
 >            disposableBeanNames = StringUtils.toStringArray(this.disposableBeans.keySet());
@@ -694,18 +694,18 @@ public void destroy() {
 >            // 再一个个处理删除单个的逻辑
 >            destroySingleton(disposableBeanNames[i]);
 >        }
->                         
+>                            
 >      	// 清除所有的缓存
 >        this.containedBeanMap.clear();
 >        this.dependentBeanMap.clear();
 >        this.dependenciesForBeanMap.clear();
->                         
+>                            
 >        clearSingletonCache();
 >    }
->                         
+>                            
 >    // 销毁一个bean的实际逻辑
 >    protected void destroyBean(String beanName, @Nullable DisposableBean bean) {
->                         
+>                            
 >        Set<String> dependencies;
 >        synchronized (this.dependentBeanMap) {
 >            dependencies = this.dependentBeanMap.remove(beanName);
@@ -719,7 +719,7 @@ public void destroy() {
 >                destroySingleton(dependentBeanName);
 >            }
 >        }
->                         
+>                            
 >        if (bean != null) {
 >            try {
 >                // 真正执行当前bean的自定义destroy方法
@@ -1113,7 +1113,7 @@ protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 
 
 
-## 2、简单的AOP实现（重要在于整个代理模型，而不在于代码实现）
+## 2、简单的AOP实现（重要在于整个Aop模型的实现）
 
 ### 2.1 Pointcut（切入点 这里只实现表达式类型的切入点）
 
@@ -1246,6 +1246,196 @@ public interface Advisor {
 
 
 #### 2.5.3 基于Cglib动态代理实现的Aop代理
+
+
+
+#### 2.5.4 Jdk动态代理和Cglib动态代理的底层原理
+
+`Jdk动态代理只支持代理实现了接口的类，而Cglib动态代理可以支持几乎所有的类（不用final修饰）`
+
+##### 1、Jdk动态代理
+
+如果我们要为target类创建一个【JDK动态代理对象】，那么我们必须要传入如下三个核心参数
+
+- 加载target类的**类加载器**
+- target类**实现的接口**
+- **InvocationHandler**
+
+`那为什么需要这三个参数呢？`
+
+我们先提供一个接口及其简单实现类，然后再实现其动态代理**（不会的自己去百度）**
+
+```java
+public interface Subject {
+    void doSomething();
+    String sayHello(String str);
+}
+```
+
+**`接下来分析动态代理类的结构`**
+
+1. 动态代理类`继承了Proxy类`，实现了`Subject接口（被代理的类实现的接口）`
+
+   **`这也就是为什么Jdk动态代理只能支持实现了接口的类，因为Java是单继承 多接口的机制，动态代理类已经继承了Proxy类，就无法再继承其他的类`**
+
+2. 可以看到动态代理类中每一个方法的执行 都会是同样的逻辑
+
+   `super.h.invoke(this, mehotd, new Object[]{var})`
+
+   那么这个**`super.h属性`**到底是什么呢？
+
+   熟悉Jdk动态代理的人应该知道`InvocationHandler接口`，而这个接口中就有这样一个方法
+
+   `public Object invoke(Object proxy, Method method, Object[] args)`
+
+看起来这个方法的结构跟`super.h.invoke(this, mehotd, new Object[]{var})`很相似，那会不会就是一个invocationHandler呢？
+
+```java
+public final class $Proxy0 extends Proxy implements Subject {
+
+    private static Method m1;
+    private static Method m3;
+    private static Method m4;
+    private static Method m2;
+    private static Method m0;
+  
+    static {
+          try {
+              m1 = Class.forName("java.lang.Object").getMethod("equals", Class.forName("java.lang.Object"));
+              m3 = Class.forName("com.stone.design.mode.proxy.jdk.Subject").getMethod("doSomething");
+              m4 = Class.forName("com.stone.design.mode.proxy.jdk.Subject").getMethod("sayHello", Class.forName("java.lang.String"));
+              m2 = Class.forName("java.lang.Object").getMethod("toString");
+              m0 = Class.forName("java.lang.Object").getMethod("hashCode");
+          } catch (NoSuchMethodException var2) {
+              throw new NoSuchMethodError(var2.getMessage());
+          } catch (ClassNotFoundException var3) {
+              throw new NoClassDefFoundError(var3.getMessage());
+          }
+      }
+
+    public $Proxy0(InvocationHandler var1) throws  {
+        super(var1);
+    }
+
+    public final boolean equals(Object var1) throws  {
+        try {
+            // 这里的h属性实际上是InvocationHandler
+            return (Boolean)super.h.invoke(this, m1, new Object[]{var1});
+        } catch (RuntimeException | Error var3) {
+            throw var3;
+        } catch (Throwable var4) {
+            throw new UndeclaredThrowableException(var4);
+        }
+    }
+    // 实现接口的方法
+    public final void doSomething() throws  {
+        try {
+            // 这里的h属性实际上是InvocationHandler
+            super.h.invoke(this, m3, (Object[])null);
+        } catch (RuntimeException | Error var2) {
+            throw var2;
+        } catch (Throwable var3) {
+            throw new UndeclaredThrowableException(var3);
+        }
+    }
+    // 实现接口的方法
+    public final String sayHello(String var1) throws  {
+        try {
+            // 这里的h属性实际上是InvocationHandler
+            return (String)super.h.invoke(this, m4, new Object[]{var1});
+        } catch (RuntimeException | Error var3) {
+            throw var3;
+        } catch (Throwable var4) {
+            throw new UndeclaredThrowableException(var4);
+        }
+    }
+
+    public final String toString() throws  {
+        try {
+            // 这里的h属性实际上是InvocationHandler
+            return (String)super.h.invoke(this, m2, (Object[])null);
+        } catch (RuntimeException | Error var2) {
+            throw var2;
+        } catch (Throwable var3) {
+            throw new UndeclaredThrowableException(var3);
+        }
+    }
+
+    public final int hashCode() throws  {
+        try {
+            // 这里的h属性实际上是InvocationHandler
+            return (Integer)super.h.invoke(this, m0, (Object[])null);
+        } catch (RuntimeException | Error var2) {
+            throw var2;
+        } catch (Throwable var3) {
+            throw new UndeclaredThrowableException(var3);
+        }
+    }
+
+}
+
+```
+
+**接下来再查看Jdk动态代理的核心方法**
+
+`Proxy.newProxyInstance(ClassLoader loader,Class<?>[] interfaces,InvocationHandler h)`
+
+可以看到`newProxyInstance`方法的流程
+
+1. 根据`类加载器`以及`被代理类实现的接口`，`获取代理类`
+2. 获取代理类的`有参构造器`并且以`传入的InvocationHandler作为参数`创建代理类对象，并返回
+
+所以`代理对象每一次执行方法`，都会调用`InvocationHanlder.invoke()`的逻辑
+
+```java
+public class Proxy implements java.io.Serializable {
+// h属性，保存我们传递进来的InvocationHandler
+protected InvocationHandler h;
+  
+// 【有参构造器】注意这里的参数
+protected Proxy(InvocationHandler h) {
+  Objects.requireNonNull(h);
+  this.h = h;
+}
+
+// 生成代理对象的方法
+public static Object newProxyInstance(ClassLoader loader, Class<?>[] interfaces,InvocationHandler h)
+    throws IllegalArgumentException{
+
+  	// 1、InvocationHandler强制不允许为空
+    Objects.requireNonNull(h);
+    // 获取到目标接口
+    final Class<?>[] intfs = interfaces.clone();
+
+    /*
+     * 2、获取到代理类的Class对象（也就是Proxy）
+     */
+    Class<?> cl = getProxyClass0(loader, intfs);
+
+    /*
+     * 通过反射执行 cl 的有参构造，也就是下面这个，可以看到通过反射执行Proxy有参构造，
+     * 将InvocationHandler赋值到了h属性上
+     */
+    try {
+        // 3、获取到有参构造器
+        final Constructor<?> cons = cl.getConstructor(constructorParams);
+        // 4、通过构造器来创建一个代理对象并返回，这里传入的参数h 就是我们的【InvocationHandler】
+        return cons.newInstance(new Object[]{h});
+    } catch (IllegalAccessException|InstantiationException e) {
+        // 省略....
+    }
+}
+}
+```
+**`Jdk动态代理的本质`**
+
+Jdk动态代理为被代理类**`创建了一个代理类`**，这个代理类`继承了Proxy类、实现了被代理类实现的所有接口`
+
+代理类中`所有接口实现方法的逻辑`，都是`调用`创建代理对象时传入的**`InvocationHanlder所实现的invoke()方法`**
+
+
+
+##### 2、Cglib动态代理
 
 
 

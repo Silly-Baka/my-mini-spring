@@ -4,7 +4,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 
 /**
- * 用于通知链的工厂接口
+ * 通知链的工厂接口，提供了获取某连接点的拦截器列表的接口
  * <p>Date: 2022/10/28
  * <p>Time: 14:08
  *

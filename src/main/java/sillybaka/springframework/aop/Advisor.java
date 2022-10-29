@@ -20,4 +20,6 @@ public interface Advisor {
      * 若配置了通知则返回通知对象，否则返回空白对象
      */
     Advice getAdvice();
+
+
 }
