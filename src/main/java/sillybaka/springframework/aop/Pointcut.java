@@ -1,5 +1,7 @@
 package sillybaka.springframework.aop;
 
+import sillybaka.springframework.aop.support.DefaultPointcut;
+
 /**
  * 切入点的抽象接口
  * <p>Date: 2022/10/27
@@ -19,5 +21,8 @@ public interface Pointcut {
      */
     MethodMatcher getMethodMatcher();
 
-
+    /**
+     * 默认的切入点，匹配所有类和方法
+     */
+    Pointcut DEFAULT_POINT_CUT = DefaultPointcut.INSTANCE;
 }
