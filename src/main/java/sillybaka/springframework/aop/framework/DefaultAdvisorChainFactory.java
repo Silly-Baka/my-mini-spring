@@ -5,7 +5,7 @@ import sillybaka.springframework.aop.Advisor;
 import sillybaka.springframework.aop.MethodMatcher;
 import sillybaka.springframework.aop.PointcutAdvisor;
 import sillybaka.springframework.aop.framework.adapter.AdvisorAdapterRegistry;
-import sillybaka.springframework.aop.framework.adapter.DefaultAdvisorAdapterRegistry;
+import sillybaka.springframework.aop.framework.adapter.GlobalAdvisorAdapterRegistry;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -26,7 +26,7 @@ public class DefaultAdvisorChainFactory implements AdvisorChainFactory{
 
         Class<?> actualClass = (targetClass != null ? targetClass : method.getDeclaringClass());
 
-        AdvisorAdapterRegistry registry = new DefaultAdvisorAdapterRegistry();
+        AdvisorAdapterRegistry registry = GlobalAdvisorAdapterRegistry.getInstance();
 
         List<Object> interceptorList = new ArrayList<>();
 

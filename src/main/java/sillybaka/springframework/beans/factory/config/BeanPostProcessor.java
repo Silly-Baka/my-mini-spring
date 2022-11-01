@@ -1,11 +1,11 @@
 package sillybaka.springframework.beans.factory.config;
 
 /**
+ * Description：Bean初始化前后用的后置处理器
  * Date: 2022/10/19
  * Time: 22:56
  *
  * @Author SillyBaka
- * Description：Bean对象的后置处理器
  **/
 public interface BeanPostProcessor {
 

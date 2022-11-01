@@ -63,6 +63,11 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
     }
 
     @Override
+    public BeanDefinition<?> getBeanDefinition(String beanName, Class<?> beanClass) {
+        return beanDefinitionMap.get(beanName);
+    }
+
+    @Override
     public String[] getBeanNamesForType(Class<?> type, boolean includeNonSingleton) {
 
         Map<Class<?>,String[]> cacheMap = includeNonSingleton ? allBeanNamesByType : singletonBeanNamesByType;
@@ -96,12 +101,12 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
             //todo 先不考虑是否是多例 --> 为了简单 默认单例
 
             // 类型相同 直接放入结果
-            if(beanDefinition.getType().isAssignableFrom(type)){
+            if(type.isAssignableFrom(beanDefinition.getType())){
                 result.add(beanName);
             }
 
         });
-        //todo 再查看手动注册的注册表 先不考虑实现
+        //todo 再查看手动注册的注册表 先不考虑手动注册bean的注册表
 
         return result.toArray(new String[0]);
     }

@@ -26,17 +26,18 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
     private final List<BeanFactoryPostProcessor> beanFactoryPostProcessors = new ArrayList<>();
 
+
     @Override
     public Object getBean(String beanName) {
         return doGetBean(beanName,null);
     }
 
     @Override
-    public <T> T getBean(String beanName, Class<T> requiredType) {
+    public Object getBean(String beanName, Class<?> requiredType) {
         return doGetBean(beanName,requiredType);
     }
 
-    protected <T> T doGetBean(String beanName, Class<T> requiredType){
+    protected Object doGetBean(String beanName, Class<?> requiredType){
         Object beanInstance;
 
         // 在缓存中获取共享的bean实例
@@ -67,14 +68,18 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
         return adaptBeanInstance(beanName,beanInstance,requiredType);
     }
 
-    @SuppressWarnings("unchecked")
-    protected <T> T adaptBeanInstance(String beanName, Object beanInstance, Class<?> requiredType) {
+    protected Object adaptBeanInstance(String beanName, Object beanInstance, Class<?> requiredType) {
         // 如果bean不是指定类型的实例 需要判断能否转化成指定类型
         if(requiredType != null && !requiredType.isInstance(beanInstance)){
             // 判断能够转化为对应类型的对象
+
+            // 如果bean实例是目标类型的子类
+            if(requiredType.isAssignableFrom(beanInstance.getClass())){
+                return requiredType.cast(beanInstance);
+            }
         }
 
-        return (T) beanInstance;
+        return beanInstance;
     }
 
     /**

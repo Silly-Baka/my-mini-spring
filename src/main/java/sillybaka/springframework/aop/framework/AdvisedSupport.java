@@ -43,6 +43,8 @@ public class AdvisedSupport {
 
     private Class<?>[] cacheInterfaces;
 
+    public AdvisedSupport(){}
+
     public AdvisedSupport(TargetSource targetSource) {
         this.targetSource = targetSource;
     }

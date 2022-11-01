@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context  http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <bean id="autoProxyAdivisor1" class="sillybaka.springframework.aop.aspectj.AspectJExpressionPointcutAdvisor">
+        <property name="advice" ref="testAdvice1"/>
+        <property name="pointcut" ref="testPointcut"/>
+    </bean>
+    <bean id="autoProxyAdivisor2" class="sillybaka.springframework.aop.aspectj.AspectJExpressionPointcutAdvisor">
+        <property name="advice" ref="testAdvice2"/>
+        <property name="pointcut" ref="testPointcut"/>
+    </bean>
+    <bean id="testAdvice1" class="sillybaka.springframework.aop.TestMethodBeforeAdvice"/>
+    <bean id="testPointcut" class="sillybaka.springframework.aop.aspectj.AspectJExpressionPointcut">
+        <property name="expression" value="execution(* sillybaka.springframework.aop.*.*(..))"/>
+    </bean>
+    <bean id="testAdvice2" class="sillybaka.springframework.aop.TestMethodAfterAdvice"/>
+    <bean id="helloService" class="sillybaka.springframework.aop.HelloServiceImpl">
+
+    </bean>
+</beans>

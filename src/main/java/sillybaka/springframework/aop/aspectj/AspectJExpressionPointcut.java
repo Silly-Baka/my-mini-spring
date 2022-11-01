@@ -28,10 +28,17 @@ public class AspectJExpressionPointcut implements ExpressionPointcut,ClassFilter
 
     private PointcutExpression pointcutExpression;
 
-    private final PointcutParser pointcutParser;
+    private PointcutParser pointcutParser;
 
-    public AspectJExpressionPointcut(String expression) {
+    // 方便setter注入 防止冲突
+    private String expression;
+
+    public AspectJExpressionPointcut(){
         pointcutParser = PointcutParser.getPointcutParserSupportingSpecifiedPrimitivesAndUsingSpecifiedClassLoaderForResolution(SUPPORTED_PRIMITIVES, this.getClass().getClassLoader());
+    }
+    public AspectJExpressionPointcut(String expression) {
+        this();
+        this.expression = expression;
         pointcutExpression = pointcutParser.parsePointcutExpression(expression);
     }
 
@@ -61,6 +68,7 @@ public class AspectJExpressionPointcut implements ExpressionPointcut,ClassFilter
     }
 
     public void setExpression(String expression){
+        this.expression = expression;
         this.pointcutExpression = pointcutParser.parsePointcutExpression(expression);
     }
 }

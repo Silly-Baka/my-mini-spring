@@ -29,8 +29,17 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
     @Override
     protected <T> T createBean(String beanName,BeanDefinition<T> beanDefinition) {
+
+        // 先给它一次机会，看能否实例化为代理对象
+        Object bean = resolveBeforeInstantiation(beanName,beanDefinition);
+        if(bean != null){
+            return (T) bean;
+        }
+
+        // 若无法生成代理对象，则执行原实例化策略
         return doCreateBean(beanName,beanDefinition);
     }
+
 
     /**
      * 创建Bean实例的实际逻辑
@@ -219,13 +228,58 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
      */
     protected <T> void registerDisposableBeanIfNecessary(String beanName, T bean, BeanDefinition<T> beanDefinition){
 
-        // 只有单例bean才能执行自定义的destroy
+        // 只有单例bean才能执行自定义的destroy 所以prototype的bean是没有这个适配器的，无法执行
         if(beanDefinition.isSingleton()){
             // 当bean实现了DisposableBean接口 或者指定了destroy()方法时
             if(bean instanceof DisposableBean || StrUtil.isNotBlank(beanDefinition.getDestroyMethodName())){
                 registerDisposableBean(beanName,new DisposableBeanAdapter(beanName,bean,beanDefinition));
             }
         }
+    }
+
+    /**
+     * 在具体实例化bean之前调用，看该bean能否被实例化为代理对象
+     * @param beanName 目标bean名字
+     * @param beanDefinition 目标bean定义
+     * @return 不为null - 该bean的代理对象
+     *         null - 无法生成代理对象
+     */
+    protected Object resolveBeforeInstantiation(String beanName, BeanDefinition<?> beanDefinition){
+        //todo 判断是否有实例化用的BeanPostProcessor
+
+        Class<?> beanClass = beanDefinition.getType();
+
+        // 使用实例化处理器的前置方法 创建代理对象
+        Object bean = applyBeanPostProcessorBeforeInstantiation(beanClass,beanName);
+
+        if(bean != null){
+            // 执行初始化后的处理器
+            return applyBeanPostProcessorsAfterInitialization(bean, beanName);
+
+        }
+        return null;
+    }
+
+    /**
+     * 在实例化之前调实例化处理器的前置方法，生成代理对象
+     * @param beanClass bean的类型
+     * @param beanName bean的名字
+     * @return 不为null - 该bean的代理对象
+     *         null - 无法生成代理对象
+     */
+    protected Object applyBeanPostProcessorBeforeInstantiation(Class<?> beanClass,String beanName){
+
+        Object bean;
+        for(BeanPostProcessor beanPostProcessor : getBeanPostProcessors()){
+            if(beanPostProcessor instanceof InstantiationAwareBeanPostProcessor){
+                bean = ((InstantiationAwareBeanPostProcessor) beanPostProcessor).postProcessBeforeInstantiation(beanClass,beanName);
+
+                if(bean != null){
+                    return bean;
+                }
+            }
+        }
+        return null;
     }
 
 }

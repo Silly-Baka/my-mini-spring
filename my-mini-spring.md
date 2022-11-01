@@ -294,6 +294,12 @@ XML示例
 > ```
 >
 > 
+>
+> **`特殊的BeanPostProcessor  `**
+>
+> **`--- InstantiationAwareBeanPostProcessor（实例化前后用的后置处理器，一般用于AOP生成代理Bean）`**
+>
+> 
 
 
 
@@ -661,21 +667,21 @@ public void destroy() {
 >    ```java
 >    // 销毁指定的单例bean
 >    public void destroySingleton(String beanName) {
->                                   
+>                                      
 >        // 删除缓存中的bean
 >        removeSingleton(beanName);
->                               
+>                                  
 >        DisposableBean disposableBean;
->                                   
+>                                      
 >        // 从特殊的注册表中取出该bean对应的DisposableAdapter
 >        synchronized (this.disposableBeans) {
 >            disposableBean = (DisposableBean) this.disposableBeans.remove(beanName);
 >        }
->                                   
+>                                      
 >       	// 实际destroy逻辑
 >        destroyBean(beanName, disposableBean);
 >    }
->                               
+>                                  
 >    // 销毁所有的单例bean
 >    public void destroySingletons() {
 >        if (logger.isTraceEnabled()) {
@@ -684,7 +690,7 @@ public void destroy() {
 >        synchronized (this.singletonObjects) {
 >            this.singletonsCurrentlyInDestruction = true;
 >        }
->                               
+>                                  
 >        String[] disposableBeanNames;
 >        synchronized (this.disposableBeans) {
 >            disposableBeanNames = StringUtils.toStringArray(this.disposableBeans.keySet());
@@ -694,18 +700,18 @@ public void destroy() {
 >            // 再一个个处理删除单个的逻辑
 >            destroySingleton(disposableBeanNames[i]);
 >        }
->                               
+>                                  
 >      	// 清除所有的缓存
 >        this.containedBeanMap.clear();
 >        this.dependentBeanMap.clear();
 >        this.dependenciesForBeanMap.clear();
->                               
+>                                  
 >        clearSingletonCache();
 >    }
->                               
+>                                  
 >    // 销毁一个bean的实际逻辑
 >    protected void destroyBean(String beanName, @Nullable DisposableBean bean) {
->                               
+>                                  
 >        Set<String> dependencies;
 >        synchronized (this.dependentBeanMap) {
 >            dependencies = this.dependentBeanMap.remove(beanName);
@@ -719,7 +725,7 @@ public void destroy() {
 >                destroySingleton(dependentBeanName);
 >            }
 >        }
->                               
+>                                  
 >        if (bean != null) {
 >            try {
 >                // 真正执行当前bean的自定义destroy方法
@@ -778,7 +784,59 @@ Spring中的xml格式
 
 
 
-### 5、FactoryBean（工厂bean，是一个bean也是自己的工厂）
+### 5、Bean的Scope作用域（实现prototype）
+
+> 在前面的章节中，我们的Bean只实现了`单例（Singleton）模式`，这里我们将实现`多例（prototype）模式`
+>
+> 在Spring中，Bean的Scope拥有五种：
+>
+> 1. `singleton（单例，整个应用上下文只存在一个实例  --> IOC容器中会有一个单例对象表存所有bean的单例对象）`
+> 2. `prototype（多例，每次获取bean都会创建一个新的实例  --> IOC容器中不会保存该实例，也不会处理它的自定义destroy方法 多例bean的生命周期由用户自己决定）`
+> 3. request（一个http请求中存在一个实例）
+> 4. session（一个session存在一个实例）
+> 5. global-session（全部session共享这个实例，即整个WebApplicationContext）
+
+#### 实现了prototype后的bean生命周期（多例bean不会执行自定义destroy方法）
+
+> **`多例bean不会执行自定义的的destroy方法 原因分析`**
+>
+> `原因`：在`AbstractAutowireCapableBeanFactory#doCreateBean()的方法中`，在实例化bean并且初始化之后，Spring会对该bean实例执行一个`registerDisposableBeanIfNecessary()方法`，该方法用于检查该bean实例是否有自定义的destroy方法，如果有 并且`该bean不为多例` 则包装为一个`DisposableBeanAdapter`注入IOC容器的`DisposableBean注册表。` （在销毁该bean的时候会从注册表中取出`对应的DisposableBeanAdapter`，并执行destroy方法)
+>
+> `源码： AbstractAutowireCapableBeanFactory#registerDisposableBeanIfNecessary（）`
+>
+> ```java
+> protected void registerDisposableBeanIfNecessary(String beanName, Object bean, RootBeanDefinition mbd) {
+>    AccessControlContext acc = (System.getSecurityManager() != null ? getAccessControlContext() : null);
+>     // 不是多例bean 并且 拥有自定义的destroy方法
+>    if (!mbd.isPrototype() && requiresDestruction(bean, mbd)) {
+>        
+>        // 如果是单例bean
+>       if (mbd.isSingleton()) {
+>          // 将其包装为DisposableBeanAdapter并且注册进特殊的注册表中
+>          registerDisposableBean(beanName, new DisposableBeanAdapter(
+>                bean, beanName, mbd, getBeanPostProcessorCache().destructionAware, acc));
+>       }
+>       else {
+>          // 如果是其他类型scope的bean（除了prototype）
+>          Scope scope = this.scopes.get(mbd.getScope());
+>          if (scope == null) {
+>             throw new IllegalStateException("No Scope registered for scope name '" + mbd.getScope() + "'");
+>          }
+>           // 将其包装为DisposableBeanAdapter并且注册进特殊的注册表中
+>          scope.registerDestructionCallback(beanName, new DisposableBeanAdapter(
+>                bean, beanName, mbd, getBeanPostProcessorCache().destructionAware, acc));
+>       }
+>    }
+> }
+> ```
+>
+> 
+
+![img](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/prototype-bean.png)
+
+
+
+### 6、FactoryBean（工厂bean，是一个bean也是自己的工厂）
 
 > `FactoryBean`是一种特殊的Bean，它的`生命周期由IOC容器进行管理`，但它`内部Bean实例的生命周期则由自己来管理`，所以IOC容器`不会自动调用` FactoryBean所管理的Bean的 `拓展方法`（比如DisposableBean.destroy()）
 
@@ -792,7 +850,7 @@ Spring中的xml格式
 
 
 
-### 6、Spring的事件机制（ApplicationContext提供的事件发布与事件监听处理功能）
+### 7、Spring的事件机制（ApplicationContext提供的事件发布与事件监听处理功能）
 
 > `Spring事件机制类似于MQ`，流程都是 **发布者发布事件 --> 广播者保存事件并转发给监听者 --> 监听者监听事件 --> 接收到事件后处理事件**，体现了`发布--订阅`的思想，可以在单机环境中实现一定程度的代码解耦
 >
@@ -1580,12 +1638,252 @@ Jdk动态代理为被代理类**`创建了一个代理类`**，这个代理类**
 
 
 
+## ==3、将AOP融入Bean的生命周期==
+
+### 3.1 如何融入Bean的生命周期
+
+> **首先分析一下**
+>
+> `如果AOP要融入Bean的生命周期，Spring要做些什么？`
+>
+> 1. `读取`用户定义的切入点、连接点以及通知等的`定义`
+> 2.  根据切入点的定义，`代理被切入点所涉及到的Bean实例（为其生成代理对象）`
+> 3.  以代理对象`替代原Bean实例`，作为`代理Bean`来使用
+>
+> **再从上面三点继续分析**
+>
+>  `如何具体实现以上三点 又不改变其他非代理Bean的生命周期（融入生命周期）？`
+>
+> **Spring中的做法：**
+>
+>  在`执行原实例化策略之前`，给这个Bean一次机会，看看它`能否被实例化为代理Bean`
+>
+> 具体看以下源码，`AbstractAutowireCapableBeanFactory#createBean（）` 
+>
+> ![Spring中createBean的部分源码](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221101154909224.png)
+>
+> 
+>
+> `AbstractAutowireCapableBeanFactory#resolveBeforeInstantiation（）`
+>
+> 这里使用到了 `特殊的BeanPostProcessor--InstantiationAwareBeanPostProcessor（实例化前后的后置处理器）`
+>
+> ```java
+> 	// 在实例化Bean之前 尝试能否将其实例化为代理Bean的逻辑
+> protected Object resolveBeforeInstantiation(String beanName, RootBeanDefinition mbd) {
+>    Object bean = null;
+>  	 // 实例化后置处理器是否已启动
+>    if (!Boolean.FALSE.equals(mbd.beforeInstantiationResolved)) {
+>       	// 当前的BeanFactory是否拥有 实例化用的后置处理器
+>       if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
+>          Class<?> targetType = determineTargetType(beanName, mbd);
+>          if (targetType != null) {
+>              // 执行实例化的后置处理器  实例化前 的方法 （其实就是实例化成代理Bean 并且初始化）
+>             bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);
+>             if (bean != null) {
+>                 // 对实例化完的代理Bean 执行 初始化后 的方法 （那初始化交给谁了？）
+>                bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);
+>             }
+>          }
+>       }
+>       mbd.beforeInstantiationResolved = (bean != null);
+>    }
+>    return bean;
+> }
+> ```
 
 
 
+### 3.2 自动创建代理Bean的具体逻辑（`AbstractAutoProxyCreator`）
+
+Spring中的`AbstractAutoProxyCreator`的**继承关系图**：
+
+![image-20221101193517743](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221101193517743.png)
 
 
 
+> **源码分析：**
+>
+> **`重点方法：`** 
+>
+> `AbstractAutoProxyCreator#postProcessBeforeInstantiation()`
+>
+> ![image-20221101175659704](C:\Users\86176\Desktop\JAVA\my-mini-spring\my-mini-spring.assets\image-20221101175659704.png)
+>
+> 
+>
+> `AbstractAutoProxyCreator#createProxy()`  **`这里还没看懂 后续更新？这里的类关系太复杂了`**
+>
+> ```java
+> protected Object createProxy(Class<?> beanClass, @Nullable String beanName,
+>       @Nullable Object[] specificInterceptors, TargetSource targetSource) {
+> 
+>    if (this.beanFactory instanceof ConfigurableListableBeanFactory) {
+>       AutoProxyUtils.exposeTargetClass((ConfigurableListableBeanFactory) this.beanFactory, beanName, beanClass);
+>    }
+> 
+>    ProxyFactory proxyFactory = new ProxyFactory();
+>    proxyFactory.copyFrom(this);
+> 
+>    if (proxyFactory.isProxyTargetClass()) {
+>       // Explicit handling of JDK proxy targets and lambdas (for introduction advice scenarios)
+>       if (Proxy.isProxyClass(beanClass) || ClassUtils.isLambdaClass(beanClass)) {
+>          // Must allow for introductions; can't just set interfaces to the proxy's interfaces only.
+>          for (Class<?> ifc : beanClass.getInterfaces()) {
+>             proxyFactory.addInterface(ifc);
+>          }
+>       }
+>    }
+>    else {
+>       // No proxyTargetClass flag enforced, let's apply our default checks...
+>       if (shouldProxyTargetClass(beanClass, beanName)) {
+>          proxyFactory.setProxyTargetClass(true);
+>       }
+>       else {
+>          evaluateProxyInterfaces(beanClass, proxyFactory);
+>       }
+>    }
+> 
+>    Advisor[] advisors = buildAdvisors(beanName, specificInterceptors);
+>    proxyFactory.addAdvisors(advisors);
+>    proxyFactory.setTargetSource(targetSource);
+>    customizeProxyFactory(proxyFactory);
+> 
+>    proxyFactory.setFrozen(this.freezeProxy);
+>    if (advisorsPreFiltered()) {
+>       proxyFactory.setPreFiltered(true);
+>    }
+> 
+>    // Use original ClassLoader if bean class not locally loaded in overriding class loader
+>    ClassLoader classLoader = getProxyClassLoader();
+>    if (classLoader instanceof SmartClassLoader && classLoader != beanClass.getClassLoader()) {
+>       classLoader = ((SmartClassLoader) classLoader).getOriginalClassLoader();
+>    }
+>    return proxyFactory.getProxy(classLoader);
+> }
+> ```
 
+
+
+**`我的逻辑：比Spring简化了很多`**
+
+`简单的从IOC容器中获取所有已注册的AdvisorBean，然后依次检查 Advisor的切入点 是否适配当前bean，若适配则将其加入AOP配置中，最后再根据AOP配置 使用动态代理生成代理对象`
+
+```java
+public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName) {
+
+    // 检查当前bean类型是否为AOP基础构件
+    if(isInfrastructureClass(beanClass)){
+        // 如果是则无法生成代理对象
+        return null;
+    }
+
+    BeanDefinition<?> beanDefinition = beanFactory.getBeanDefinition(beanName, beanClass);
+  
+   	// 正常这里应该是从IOC容器内置bean中获取（不供外使用、只允许在AOP中获取） 但我偷懒直接实例化
+    TargetSource targetSource = new TargetSource(new SimpleInstantiationStrategy().instantiation(beanDefinition));
+
+    return createProxy(beanClass,beanName,targetSource);
+}
+
+    /**
+     * 为指定bean创建代理对象的实际逻辑
+     */
+    protected Object createProxy(Class<?> beanClass,String beanName,TargetSource targetSource){
+        // 创建IOC配置类对象
+        AdvisedSupport advisedSupport = new AdvisedSupport();
+
+        advisedSupport.setTargetSource(targetSource);
+        
+        // 默认采用Cglib动态代理
+        advisedSupport.setProxyTargetClass(true);
+
+        // todo 这里先获取大家都通用的Advisor，后面应该可能有指定给哪个Bean的Advisor
+        String[] advisorNames = beanFactory.getBeanNamesForType(Advisor.class, true);
+
+        List<Object> advisors = new ArrayList<>();
+        for (String advisorName : advisorNames) {
+            Object advisorObject = beanFactory.getBean(advisorName);
+            // 匹配每一个Advisor
+            if(advisorObject instanceof AspectJExpressionPointcutAdvisor){
+                AspectJExpressionPointcutAdvisor advisor = (AspectJExpressionPointcutAdvisor) advisorObject;
+                // 获取切入点
+                Pointcut pointcut = advisor.getPointcut();
+                ClassFilter classFilter = pointcut.getClassFilter();
+                // 判断该切入点是否匹配当前bean
+                if(classFilter.matches(beanClass)){
+                    advisors.add(advisor);
+                }
+            }
+        }
+        // 如果没有对应的Advisor 则说明无法生成代理对象 返回null
+        if(advisors.size() == 0){
+            return null;
+        }
+        advisedSupport.addAdvisors(advisors.toArray(new Advisor[0]));
+
+        AopProxyFactory aopProxyFactory = new DefaultAopProxyFactory();
+        // 创建代理对象并返回
+        return aopProxyFactory.createAopProxy(advisedSupport).getProxy();
+    }
+```
+
+
+
+### 3.3 当前Bean生命周期
+
+
+
+![image-20221101164830189](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221101164830189.png)
+
+
+
+### 3.4 测试
+
+`TestAutoProxy.java`
+
+```java
+public class TestAutoProxy {
+
+    @Test
+    public void test1(){
+        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("classpath:testAutoProxy.xml");
+
+        Object object = applicationContext.getBean("helloService", HelloService.class);
+
+        HelloService helloService = (HelloService) object;
+        helloService.hello();
+    }
+}
+```
+
+`testAutoProxy.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context  http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <bean id="autoProxyAdivisor1" class="sillybaka.springframework.aop.aspectj.AspectJExpressionPointcutAdvisor">
+        <property name="advice" ref="testAdvice1"/>
+        <property name="pointcut" ref="testPointcut"/>
+    </bean>
+    <bean id="autoProxyAdivisor2" class="sillybaka.springframework.aop.aspectj.AspectJExpressionPointcutAdvisor">
+        <property name="advice" ref="testAdvice2"/>
+        <property name="pointcut" ref="testPointcut"/>
+    </bean>
+    <bean id="testAdvice1" class="sillybaka.springframework.aop.TestMethodBeforeAdvice"/>
+    <bean id="testPointcut" class="sillybaka.springframework.aop.aspectj.AspectJExpressionPointcut">
+        <property name="expression" value="execution(* sillybaka.springframework.aop.*.*(..))"/>
+    </bean>
+    <bean id="testAdvice2" class="sillybaka.springframework.aop.TestMethodAfterAdvice"/>
+    <bean id="helloService" class="sillybaka.springframework.aop.HelloServiceImpl">
+
+    </bean>
+</beans>
+```
 
 # 注解驱动篇

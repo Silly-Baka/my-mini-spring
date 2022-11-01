@@ -3,6 +3,7 @@ package sillybaka.springframework.aop.framework.adapter;
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 import sillybaka.springframework.aop.Advisor;
+import sillybaka.springframework.aop.support.DefaultPointcutAdvisor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,5 +44,16 @@ public class DefaultAdvisorAdapterRegistry implements AdvisorAdapterRegistry{
         }
 
         return interceptors.toArray(new MethodInterceptor[0]);
+    }
+
+    @Override
+    public Advisor wrap(Advice advice) {
+
+        if(advice instanceof Advisor){
+            return (Advisor) advice;
+        }
+
+        // 默认返回一个DefaultPointcutAdvisor
+        return new DefaultPointcutAdvisor(advice);
     }
 }

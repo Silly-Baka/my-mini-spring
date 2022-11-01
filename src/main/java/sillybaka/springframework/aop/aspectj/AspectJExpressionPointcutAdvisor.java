@@ -13,9 +13,10 @@ import sillybaka.springframework.aop.PointcutAdvisor;
  **/
 public class AspectJExpressionPointcutAdvisor implements PointcutAdvisor {
 
-    private final Advice advice;
-    private final Pointcut pointcut;
+    private Advice advice;
+    private Pointcut pointcut;
 
+    public AspectJExpressionPointcutAdvisor(){}
     public AspectJExpressionPointcutAdvisor(Advice advice) {
         this.advice = advice;
         this.pointcut = Pointcut.DEFAULT_POINT_CUT;
@@ -33,5 +34,13 @@ public class AspectJExpressionPointcutAdvisor implements PointcutAdvisor {
     @Override
     public Pointcut getPointcut() {
         return this.pointcut;
+    }
+
+    public void setAdvice(Advice advice) {
+        this.advice = advice;
+    }
+
+    public void setPointcut(Pointcut pointcut) {
+        this.pointcut = pointcut;
     }
 }

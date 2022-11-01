@@ -1,5 +1,6 @@
 package sillybaka.springframework.context.support;
 
+import sillybaka.springframework.aop.framework.autoproxy.AbstractAdvisorAutoProxyCreator;
 import sillybaka.springframework.beans.factory.ConfigurableListableBeanFactory;
 import sillybaka.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import sillybaka.springframework.beans.factory.config.BeanPostProcessor;
@@ -69,9 +70,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
     protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 
         // 注册特殊bean的定义
-
         beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
         beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
+        // 添加AOP自动创建代理对象用的实例化处理器
+        beanFactory.addBeanPostProcessor(new AbstractAdvisorAutoProxyCreator(beanFactory));
     }
 
     /**
@@ -138,7 +140,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
 
         ConfigurableListableBeanFactory beanFactory = getBeanFactory();
         // 一个BeanFactory只管理一个传播器实例（特殊bean） 所以直接获取
-        ApplicationEventMulticaster applicationEventMulticaster = getBeanFactory().getBean(APPLICATION_EVENT_MULTICASTER_BEAN_NAME, ApplicationEventMulticaster.class);
+        ApplicationEventMulticaster applicationEventMulticaster = (ApplicationEventMulticaster) getBeanFactory().getBean(APPLICATION_EVENT_MULTICASTER_BEAN_NAME, ApplicationEventMulticaster.class);
 
         if (applicationEventMulticaster == null) {
             applicationEventMulticaster = new SimpleApplicationEventMulticaster();
@@ -197,7 +199,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
      * @param requiredType 需要的类型
      */
     @Override
-    public <T> T getBean(String beanName, Class<T> requiredType) {
+    public Object getBean(String beanName, Class<?> requiredType) {
         return getBeanFactory().getBean(beanName,requiredType);
     }
 

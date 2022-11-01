@@ -1,5 +1,6 @@
 package sillybaka.springframework.aop.framework.adapter;
 
+import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 import sillybaka.springframework.aop.Advisor;
 
@@ -23,4 +24,11 @@ public interface AdvisorAdapterRegistry {
      * @param advisor 要查询的advisor
      */
     MethodInterceptor[] getInterceptors(Advisor advisor);
+
+    /**
+     * 将目标通知封装为一个包含该通知的Advisor（默认为DefaultPointcutAdvisor）
+     * @param advice 通知对象
+     * @return 包含该通知的advisor
+     */
+    Advisor wrap(Advice advice);
 }

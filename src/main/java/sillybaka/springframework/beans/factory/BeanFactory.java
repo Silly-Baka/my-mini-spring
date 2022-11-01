@@ -20,5 +20,5 @@ public interface BeanFactory {
      * @param beanName bean的名字
      * @param requiredType 需要的类型
      */
-    <T> T getBean(String beanName,Class<T> requiredType);
+    Object getBean(String beanName,Class<?> requiredType);
 }
