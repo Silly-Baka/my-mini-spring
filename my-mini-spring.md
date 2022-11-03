@@ -1902,7 +1902,7 @@ public class TestAutoProxy {
 
 # 拓展篇
 
-## 1、PropertyResourceConfigurer 和 PropertyPlaceholderConfigurer
+## 1、处理bean定义中的占位符（PropertyResourceConfigurer 和 PropertyPlaceholderConfigurer）
 
 > 在上文中提到了`BeanFactoryPostProcessor`，也介绍了它在Spring中主要的用途：`对Bean定义中的占位符进行替换`。
 >
@@ -2157,5 +2157,43 @@ public class testPlaceholder {
 
 
 
-## 2、包扫描
+## 2、包扫描（Component-Scan）
+
+> Spring中提供了一个`自动扫描指定包下所有Bean组件（即带有@Component、@Controller、@Service 等接口的类）`的功能 ———— **`Component-Scan`**。 这个功能能够**`允许自动扫描Bean，减少我们在XML文件中诸如定义Bean之类的大量且频繁的操作。`**
+>
+> **`那么它的底层实现逻辑是什么样的呢？`**
+>
+> ![image-20221103210710547](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221103210710547.png)
+
+
+
+## 3、@Value注解
+
+
+
+## 4、@Autowired注解
+
+
+
+
+
+# 结尾篇
+
+## ==Spring中循环依赖的解决方案==
+
+## 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

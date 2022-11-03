@@ -73,12 +73,17 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
     public <T> void autoWirePropertyValues(String beanName, T existingBean, BeanDefinition<T> beanDefinition){
         PropertyValues propertyValues = beanDefinition.getPropertyValues();
 
+        if(propertyValues == null){
+            return;
+        }
+
         Class<?> clazz = existingBean.getClass();
 
         //todo 获取该Bean类的所有PropertyDescriptor --> 生命周期开始为在XMl扫描时按需调用
         Map<String, PropertyDescriptor> beanPropertyMap = PropertyUtils.getBeanPropertyMap(clazz);
 
         Map<String, Class<?>> propertyTypeMap = PropertyUtils.getPropertyTypeMap(clazz);
+
 
         for(PropertyValue pv : propertyValues.getPropertyValues()){
 

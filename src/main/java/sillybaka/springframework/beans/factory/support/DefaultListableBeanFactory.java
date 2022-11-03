@@ -137,7 +137,6 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
     @Override
     public void preInitiateSingletons() {
         beanDefinitionMap.forEach((beanName,beanDefinition)->{
-            //todo 偷懒 直接调用getBean的逻辑 实际上这里浪费了返回值，并且全是以单例的方式创建
             getBean(beanName);
         });
     }

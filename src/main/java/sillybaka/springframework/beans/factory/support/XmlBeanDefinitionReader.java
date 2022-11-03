@@ -9,6 +9,7 @@ import sillybaka.springframework.beans.factory.config.BeanDefinition;
 import sillybaka.springframework.beans.factory.config.BeanReference;
 import sillybaka.springframework.beans.factory.config.PropertyValue;
 import sillybaka.springframework.beans.factory.config.PropertyValues;
+import sillybaka.springframework.context.annotation.ClassPathBeanDefinitionScanner;
 import sillybaka.springframework.core.io.Resource;
 import sillybaka.springframework.core.io.ResourceLoader;
 import sillybaka.springframework.exception.BeansException;
@@ -17,6 +18,7 @@ import sillybaka.springframework.utils.PropertyUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * Description：用于从Xml文件中读取Bean定义的读取器
@@ -27,6 +29,7 @@ import java.util.Locale;
  **/
 public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
 
+    public static final String COMPONENT_SCAN_TAG = "context:component-scan";
     public static final String BEAN_ELEMENT_TAG = "bean";
     public static final String PROPERTY_ELEMENT_TAG = "property";
     public static final String ID_ATTRIBUTE = "id";
@@ -37,6 +40,9 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
     public static final String INIT_METHOD_ATTRIBUTE = "init-method";
     public static final String DESTROY_METHOD_ATTRIBUTE = "destroy-method";
     public static final String SCOPE_ATTRIBUTE = "scope";
+    public static final String BASE_PACKAGE_ATTRIBUTE = "base-package";
+
+    private ClassPathBeanDefinitionScanner beanDefinitionScanner = new ClassPathBeanDefinitionScanner();
 
     public XmlBeanDefinitionReader(ResourceLoader resourceLoader, BeanDefinitionRegistry beanDefinitionRegistry) {
         super(resourceLoader, beanDefinitionRegistry);
@@ -78,6 +84,10 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
                 // 如果该标签为bean标签
                 if(BEAN_ELEMENT_TAG.equals(element.getTagName())){
                     doLoadBeanDefinition(element);
+                }
+                // 如果该标签为component-scan标签
+                if(COMPONENT_SCAN_TAG.equals(element.getTagName())){
+                    loadComponentScanElement(element);
                 }
             }
         }
@@ -194,5 +204,25 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader{
         getBeanDefinitionRegistry().registerBeanDefinition(beanName,beanDefinition);
 
         return beanDefinition;
+    }
+
+    /**
+     * 加载带有包扫描的标签
+     */
+    public void loadComponentScanElement(Element componentScanElement){
+        String basePackage = componentScanElement.getAttribute(BASE_PACKAGE_ATTRIBUTE);
+
+        String[] basePackages = basePackage.split(",");
+
+        Set<BeanDefinition<?>> beanDefinitionSet = beanDefinitionScanner.doScan(basePackages);
+
+        BeanDefinitionRegistry beanDefinitionRegistry = getBeanDefinitionRegistry();
+
+        for (BeanDefinition<?> beanDefinition : beanDefinitionSet) {
+            String beanName = beanDefinitionScanner.determineBeanName(beanDefinition);
+
+            beanDefinitionRegistry.registerBeanDefinition(beanName,beanDefinition);
+        }
+
     }
 }
