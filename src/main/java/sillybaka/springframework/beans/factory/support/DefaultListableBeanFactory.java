@@ -87,6 +87,19 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
         return beanNames;
     }
 
+    @Override
+    public String[] getBeanDefinitionNames() {
+        return beanDefinitionMap.keySet().toArray(new String[0]);
+    }
+
+    @Override
+    public BeanDefinition<?> getBeanDefinitionByName(String beanName) {
+        if(StrUtil.isBlank(beanName)){
+            throw new IllegalArgumentException("beanName should not be null or empty");
+        }
+        return beanDefinitionMap.get(beanName);
+    }
+
     /**
      * 获取指定类型的beanName列表 实际逻辑
      * @param type 类型

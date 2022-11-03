@@ -667,21 +667,21 @@ public void destroy() {
 >    ```java
 >    // 销毁指定的单例bean
 >    public void destroySingleton(String beanName) {
->                                      
+>                                                  
 >        // 删除缓存中的bean
 >        removeSingleton(beanName);
->                                  
+>                                              
 >        DisposableBean disposableBean;
->                                      
+>                                                  
 >        // 从特殊的注册表中取出该bean对应的DisposableAdapter
 >        synchronized (this.disposableBeans) {
 >            disposableBean = (DisposableBean) this.disposableBeans.remove(beanName);
 >        }
->                                      
+>                                                  
 >       	// 实际destroy逻辑
 >        destroyBean(beanName, disposableBean);
 >    }
->                                  
+>                                              
 >    // 销毁所有的单例bean
 >    public void destroySingletons() {
 >        if (logger.isTraceEnabled()) {
@@ -690,7 +690,7 @@ public void destroy() {
 >        synchronized (this.singletonObjects) {
 >            this.singletonsCurrentlyInDestruction = true;
 >        }
->                                  
+>                                              
 >        String[] disposableBeanNames;
 >        synchronized (this.disposableBeans) {
 >            disposableBeanNames = StringUtils.toStringArray(this.disposableBeans.keySet());
@@ -700,18 +700,18 @@ public void destroy() {
 >            // 再一个个处理删除单个的逻辑
 >            destroySingleton(disposableBeanNames[i]);
 >        }
->                                  
+>                                              
 >      	// 清除所有的缓存
 >        this.containedBeanMap.clear();
 >        this.dependentBeanMap.clear();
 >        this.dependenciesForBeanMap.clear();
->                                  
+>                                              
 >        clearSingletonCache();
 >    }
->                                  
+>                                              
 >    // 销毁一个bean的实际逻辑
 >    protected void destroyBean(String beanName, @Nullable DisposableBean bean) {
->                                  
+>                                              
 >        Set<String> dependencies;
 >        synchronized (this.dependentBeanMap) {
 >            dependencies = this.dependentBeanMap.remove(beanName);
@@ -725,7 +725,7 @@ public void destroy() {
 >                destroySingleton(dependentBeanName);
 >            }
 >        }
->                                  
+>                                              
 >        if (bean != null) {
 >            try {
 >                // 真正执行当前bean的自定义destroy方法
@@ -774,13 +774,23 @@ Spring中的xml格式
 
 #### 4.2 ApplicationContextAware（使Bean能感知到其所属的ApplicationContext）
 
-这里的回调也应该发生在`Bean实例化之后（要先有对象才能回调其函数）`，`Bean初始化之前（因为初始化的逻辑中可能会使用到）`，但由于创建是在内置的BeanFactory中进行的，而`BeanFactory无法感知到其上下文`（也可以设计成可感知），而ApplicationContext`在Bean实例化之前会自动注册BeanPostProcessor`，所以可以在注册BeanPostProcessor时将上下文记录。在**调用BeanPostProcessor时再回调注入到Bean中**
+这里的回调也应该发生在`Bean实例化之后（要先有对象才能回调其函数）`，`Bean初始化之前（因为初始化的逻辑中可能会使用到）`，但由于创建是在内置的BeanFactory中进行的，而`BeanFactory无法感知到其上下文`（也可以设计成可感知），而ApplicationContext`在Bean实例化之前会自动注册BeanPostProcessor`，所以应当在注册BeanPostProcessor时将上下文记录。在**调用BeanPostProcessor时再回调注入到Bean中**
 
 #### 4.3 当前Bean的生命周期
 
 ![img](https://github.com/DerekYRC/mini-spring/raw/main/assets/aware-interface.png)
 
 
+
+#### 4.4 总结
+
+1. `实现了Aware接口的Bean`都会在其`实例化后、初始化前`被注入相应的aware对象
+
+2. `BeanFactory有关的Aware接口`都会在实例化Bean对象之后的 `invokeAwareMethods(String beanName，Object bean)中调用`
+
+3. 而`ApplicationContextAware等和上下文相关的Aware接口`会在执行BeanPostProcessor的`前置处理方法`时，即在执行`applyBeanPostProcessorsBeforeInitialization(String beanName，Object bean)`时调用，
+
+   **（由BeanPostProcessor放入，在注册特定的BeanPostProcessor时会放入）**
 
 
 
@@ -1886,4 +1896,266 @@ public class TestAutoProxy {
 </beans>
 ```
 
-# 注解驱动篇
+
+
+
+
+# 拓展篇
+
+## 1、PropertyResourceConfigurer 和 PropertyPlaceholderConfigurer
+
+> 在上文中提到了`BeanFactoryPostProcessor`，也介绍了它在Spring中主要的用途：`对Bean定义中的占位符进行替换`。
+>
+> 今天就来分析它的源码以及具体实现流程。这里先实现简单的`properties+占位符`替换，后面实现使用`注解@Values`注入
+
+
+
+### **1.1 PropertiesResourceConfigurer实现**
+
+**`分析源码`**
+
+> `PropertyResourceConfigurer#postProcessBeanFactory（实现BeanFactoryPostProcessor接口的方法）`
+>
+> ```java
+> @Override
+> public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+>    try {
+>        // 1、加载上下文中定义的所有properties文件，并将其合并在同一个Properties中
+>       Properties mergedProps = mergeProperties();
+>        // 2、将合并的Properties按照一定规则转化（没定义别的规则 可能以后拓展用？）
+>       convertProperties(mergedProps);
+> 	   // 3、将合并后的properties注入到BeanFactory的BeanDefinition中
+>        // 重点方法
+>       processProperties(beanFactory, mergedProps);
+>    }
+>    catch (IOException ex) {
+>       throw new BeanInitializationException("Could not load properties", ex);
+>    }
+> }
+> ```
+>
+> `processProperties(beanFactory, mergedProps)`是一个`抽象方法`，实际的`填充逻辑`会交给`子类实现`
+>
+> **`PropertiyOverrideConfiguer`**: 直接使用Property中的指定属性`替换BeanDefinition中的指定属性`
+>
+> ​							properties文件中的格式： `"bean.属性名称=属性值"`
+>
+> **`PropertyPlaceholderConfiguer（最常用）`**: 使用Property中的指定属性 `替换BeanDefinition中`**`使用了占位符的指定属性`**
+>
+> ​							BeanDefinition中的格式：`<property value="${propertyName}"/>`
+>
+> ​							properties文件中的格式： `propertyName=value`
+>
+> ![image-20221102180207973](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221102180207973.png)
+
+
+
+**我的实现**
+
+```java
+public abstract class PropertiesResourceConfigurer extends PropertiesLoaderSupport implements BeanFactoryPostProcessor{
+
+    /**
+     * 模板方法 具体逻辑子类实现
+     * @param beanFactory 上下文中所使用的工厂对象
+     */
+    @Override
+    public void postProcessBeanFactory(ConfigurableBeanFactory beanFactory){
+        // 1、读取上下文的property
+        Properties props = null;
+        try {
+            props = loadProperties();
+        } catch (NestedIOException e) {
+            log.error("加载上下文配置文件时出错",e);
+        }
+        // 2、将property应用于BeanFactory
+        processProperties(beanFactory,props);
+    }
+
+    /**
+     * 将给定的property中的属性应用于BeanFactory中的bean定义
+     * @param beanFactory 指定的BeanFactory
+     * @param props 属性
+     */
+    protected abstract void processProperties(ConfigurableBeanFactory beanFactory, Properties props);
+}
+
+public class PropertiesLoaderSupport {
+
+    private ResourceLoader resourceLoader;
+
+    private String[] locations;
+
+    public PropertiesLoaderSupport(){}
+
+    public PropertiesLoaderSupport(String...locations){
+        this.locations = locations;
+    }
+
+    /**
+     * 从上下文中加载所有的properties
+     * @return 上下文中所有properties的集合
+     */
+    protected Properties loadProperties() throws NestedIOException {
+
+        Properties properties = new Properties();
+
+        for (String location : locations) {
+            Resource resource = resourceLoader.getResource(location);
+            try {
+                properties.load(resource.getInputStream());
+            } catch (IOException e) {
+                throw new NestedIOException("load properties [" + resource.getFileName() + "] error");
+            }
+        }
+
+        return properties;
+    }
+
+    public void setResourceLoader(ResourceLoader resourceLoader) {
+        this.resourceLoader = resourceLoader;
+    }
+
+    public void setLocations(String[] locations) {
+        this.locations = locations;
+    }
+}
+```
+
+
+
+### 1.2 PropertyPlaceholderConfigurer实现`（用于替换bean定义中的占位符）`
+
+> **`首先分析一下我们起初定义的BeanDefinition结构，它被加载进来的时候是什么样子的？（实例化+自动装配属性之前）`**
+>
+> BeanDefinition中`每一个属性都是一个PropertyValue`， 属性名-属性值，并且都是`String类型`的
+>
+> 所以这里的实现就很简单了**（在String中则是委托给了`StringValueResolver`来实现）**
+>
+> `PropertySourcesPlaceholderConfigurer#processProperties()的源码`
+>
+> ![image-20221103173416366](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221103173416366.png)
+>
+> `PlaceholderConfigurerSupport#doProcessProperties()的源码`
+>
+> ![image-20221103174045375](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221103174045375.png)
+
+
+
+**我的思路：**`扫描properties中的每一个Property，扫描每一个beanDefinition中的每一个属性值，判断其是否是${propertyName}格式的，若是 则取出propertyName，并从properties中取出属性值并替换。`
+
+**我的实现**
+
+```java
+public class PropertyPlaceholderConfigurer extends PropertyResourceConfigurer {
+
+    private static final String PLACEHOLDER_PREFIX = "${";
+    private static final String PLACEHOLDER_SUFFIX = "}";
+
+    /**
+     * 访问BeanFactory中的每一个bean的定义，尝试能否使用props文件中的属性来替换其中的属性占位符
+     * @param beanFactory 指定的BeanFactory
+     * @param props property属性集合
+     */
+    @Override
+    protected void processProperties(ConfigurableListableBeanFactory beanFactory, Properties props) {
+        for (String beanDefinitionName : beanFactory.getBeanDefinitionNames()) {
+            BeanDefinition<?> beanDefinition = beanFactory.getBeanDefinitionByName(beanDefinitionName);
+            resolvePropertyValues(beanDefinition,props);
+        }
+    }
+
+    /**
+     * 根据props解析并替换目标bean定义中的占位符<p>
+     * 占位符格式： ${propertyName}
+     * @param beanDefinition 目标bean定义
+     * @param props property属性集合
+     */
+    protected void resolvePropertyValues(BeanDefinition<?> beanDefinition,Properties props){
+        PropertyValues propertyValues = beanDefinition.getPropertyValues();
+        for (PropertyValue pv : propertyValues.getPropertyValues()) {
+            String propertyValue = (String) pv.getPropertyValue();
+            // 如果属性值是占位符 则替换
+            if(propertyValue.startsWith(PLACEHOLDER_PREFIX) && propertyValue.endsWith(PLACEHOLDER_SUFFIX)){
+                int length = propertyValue.length();
+                propertyValue = propertyValue.substring(PLACEHOLDER_PREFIX.length(),length-PLACEHOLDER_SUFFIX.length());
+
+                // 作为key从props中获取属性
+                propertyValue = props.getProperty(propertyValue);
+            }
+            propertyValues.addPropertyValue(new PropertyValue(pv.getPropertyName(),propertyValue));
+        }
+        beanDefinition.setPropertyValues(propertyValues);
+    }
+}
+```
+
+
+
+### 1.3 单元测试
+
+```java
+public class testPlaceholder {
+
+    @Test
+    public void test1(){
+        ClassPathXmlApplicationContext classPathXmlApplicationContext = new ClassPathXmlApplicationContext("classpath:testPlaceholder.xml");
+        Object testCar = classPathXmlApplicationContext.getBean("testCar");
+        System.out.println(testCar);
+    }
+
+    @Test
+    public void test2(){
+        ClassPathXmlApplicationContext classPathXmlApplicationContext = new ClassPathXmlApplicationContext("classpath:testPlaceholder2.xml");
+        Object carRoll = classPathXmlApplicationContext.getBean("carRoll");
+        System.out.println(carRoll);
+    }
+}
+```
+
+`testPlaceholder.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context  http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <bean id="testCar" class="sillybaka.springframework.entity.Car">
+        <property name="brand" value="${brand}"/>
+        <property name="price" value="${price}"/>
+        <property name="owner" value="${owner}"/>
+        <property name="carRoll" ref="carRoll"/>
+    </bean>
+    <bean id="carRoll" class="sillybaka.springframework.entity.CarRoll">
+        <property name="brand" value="牛马"/>
+    </bean>
+</beans>
+```
+
+`testPlaceholder2.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context  http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <bean id="placeholderPostProcessor" class="sillybaka.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location" value="classpath:testPlaceholder2.properties"/>
+    </bean>
+
+    <bean id="carRoll" class="sillybaka.springframework.entity.CarRoll">
+        <property name="brand" value="${niubi}"/>
+    </bean>
+</beans>
+```
+
+
+
+## 2、包扫描
+

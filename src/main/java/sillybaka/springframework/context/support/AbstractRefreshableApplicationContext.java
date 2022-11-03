@@ -1,6 +1,7 @@
 package sillybaka.springframework.context.support;
 
 import sillybaka.springframework.beans.factory.ConfigurableListableBeanFactory;
+import sillybaka.springframework.beans.factory.config.BeanDefinition;
 import sillybaka.springframework.beans.factory.support.DefaultListableBeanFactory;
 
 /**
@@ -55,4 +56,13 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
      */
     protected abstract void loadBeanDefinitions(DefaultListableBeanFactory beanFactory);
 
+    @Override
+    public String[] getBeanDefinitionNames() {
+        return beanFactory.getBeanDefinitionNames();
+    }
+
+    @Override
+    public BeanDefinition<?> getBeanDefinitionByName(String beanName) {
+        return beanFactory.getBeanDefinitionByName(beanName);
+    }
 }

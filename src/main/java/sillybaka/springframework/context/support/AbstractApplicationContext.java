@@ -1,9 +1,11 @@
 package sillybaka.springframework.context.support;
 
 import sillybaka.springframework.aop.framework.autoproxy.AbstractAdvisorAutoProxyCreator;
+import sillybaka.springframework.beans.factory.ApplicationContextAware;
 import sillybaka.springframework.beans.factory.ConfigurableListableBeanFactory;
 import sillybaka.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import sillybaka.springframework.beans.factory.config.BeanPostProcessor;
+import sillybaka.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import sillybaka.springframework.beans.factory.support.ApplicationContextAwareProcessor;
 import sillybaka.springframework.beans.factory.support.ApplicationListenerDetector;
 import sillybaka.springframework.context.ApplicationEvent;
@@ -45,6 +47,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
         prepareBeanFactory(beanFactory);
 
         // 在实例化bean之前调用beanFactoryPostProcessor 看是否需要修改beanDefinition
+        //todo 问题：BeanFactoryPostProcessor在哪里开始注册进IOC容器
         invokeBeanFactoryPostProcessors(beanFactory);
 
         // 注册BeanPostProcessors进当前内置的BeanFactory
@@ -69,11 +72,13 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
      */
     protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 
-        // 注册特殊bean的定义
         beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
         beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
         // 添加AOP自动创建代理对象用的实例化处理器
         beanFactory.addBeanPostProcessor(new AbstractAdvisorAutoProxyCreator(beanFactory));
+
+        beanFactory.addBeanFactoryPostProcessor(new PropertyPlaceholderConfigurer(this));
+
     }
 
     /**
@@ -102,6 +107,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
      * 执行指定BeanFactory的所有后置处理器
      */
     protected void invokeBeanFactoryPostProcessors(ConfigurableListableBeanFactory beanFactory){
+        // 先从bean定义中获取
         String[] postProcessorNames = beanFactory.getBeanNamesForType(BeanFactoryPostProcessor.class, true);
         for (String postProcessorName : postProcessorNames) {
             Object bean = beanFactory.getBean(postProcessorName);
@@ -110,6 +116,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
             }else {
                 throw new BeansException("the bean name with: ["+postProcessorName+"] is not a BeanFactoryPostProcessor");
             }
+        }
+        // 再从预注册的BeanFactoryProcessor中获取
+        for (BeanFactoryPostProcessor beanFactoryBeanPostProcessor : beanFactory.getBeanFactoryBeanPostProcessors()) {
+            beanFactoryBeanPostProcessor.postProcessBeanFactory(beanFactory);
         }
     }
 
@@ -129,6 +139,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
                 beanFactory.addBeanPostProcessor((BeanPostProcessor) bean);
             }else {
                 throw new BeansException("the bean name with: ["+postProcessorName+"] is not a BeanPostProcessor");
+            }
+            if(bean instanceof ApplicationContextAware){
+                ((ApplicationContextAware) bean).setApplicationContext(this);
             }
         }
     }

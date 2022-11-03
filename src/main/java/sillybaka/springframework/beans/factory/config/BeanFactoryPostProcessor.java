@@ -1,6 +1,8 @@
 package sillybaka.springframework.beans.factory.config;
 
+import org.springframework.core.NestedIOException;
 import sillybaka.springframework.beans.factory.ConfigurableBeanFactory;
+import sillybaka.springframework.beans.factory.ConfigurableListableBeanFactory;
 
 /**
  * Date: 2022/10/19
@@ -15,5 +17,5 @@ public interface BeanFactoryPostProcessor {
      * 在使用BeanFactory之前（即创建bean实例之前）调用该方法。可以修改指定的beanDefinition
      * @param beanFactory 上下文中所使用的工厂对象
      */
-    void postProcessBeanFactory(ConfigurableBeanFactory beanFactory);
+    void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory);
 }

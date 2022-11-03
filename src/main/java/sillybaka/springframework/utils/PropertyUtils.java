@@ -1,5 +1,6 @@
 package sillybaka.springframework.utils;
 
+import cn.hutool.core.util.StrUtil;
 import com.sun.istack.internal.Nullable;
 import com.sun.org.apache.bcel.internal.generic.LNEG;
 
@@ -98,6 +99,7 @@ public class PropertyUtils {
 
         try {
             Field field = clazz.getDeclaredField(propertyName);
+
             Class<?> propertyType = field.getType();
 
             pd = new PropertyDescriptor(propertyName, clazz);
@@ -160,7 +162,6 @@ public class PropertyUtils {
      * @return 转换后的属性值
      */
     public static <T> T propertyValueTypeConversion(String propertyValue, Class<T> propertyType){
-
         if(propertyType.isAssignableFrom(Integer.TYPE) || propertyType.isAssignableFrom(Integer.class)){
             return (T) Integer.valueOf(propertyValue);
         }

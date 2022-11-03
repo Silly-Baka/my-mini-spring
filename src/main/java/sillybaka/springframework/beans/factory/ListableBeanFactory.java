@@ -1,6 +1,7 @@
 package sillybaka.springframework.beans.factory;
 
-import sillybaka.springframework.beans.factory.BeanFactory;
+
+import sillybaka.springframework.beans.factory.config.BeanDefinition;
 
 /**
  * Date: 2022/10/16
@@ -18,4 +19,16 @@ public interface ListableBeanFactory extends BeanFactory {
      * @return 符合条件的beanName列表
      */
     String[] getBeanNamesForType(Class<?> type, boolean includeNonSingleton);
+
+    /**
+     * 获取BeanFactory中所有BeanDefinition的名字
+     */
+    String[] getBeanDefinitionNames();
+
+    /**
+     * 根据bean的名字获取它的bean定义
+     * @param beanName 要获取的bean的名字
+     * @return bean的定义
+     */
+    BeanDefinition<?> getBeanDefinitionByName(String beanName);
 }

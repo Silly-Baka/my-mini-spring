@@ -114,6 +114,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
                 }else {
                 // 普通属性 直接使用Setter方法注入
                     //todo 需要一个类型转换适配器，否则任何propertyValue都是String类型的
+
                     setterMethod.invoke(existingBean,
                             PropertyUtils.propertyValueTypeConversion((String)propertyValue,propertyType));
                 }

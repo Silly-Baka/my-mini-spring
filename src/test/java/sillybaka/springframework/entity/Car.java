@@ -59,4 +59,14 @@ public class Car {
     public void setCarRoll(CarRoll carRoll) {
         this.carRoll = carRoll;
     }
+
+    @Override
+    public String toString() {
+        return "Car{" +
+                "brand='" + brand + '\'' +
+                ", price=" + price +
+                ", owner='" + owner + '\'' +
+                ", carRoll=" + carRoll +
+                '}';
+    }
 }
