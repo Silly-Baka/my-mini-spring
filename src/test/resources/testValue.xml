@@ -5,11 +5,10 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
                            http://www.springframework.org/schema/context  http://www.springframework.org/schema/context/spring-context.xsd">
 
-    <bean id="placeholderPostProcessor" class="sillybaka.springframework.beans.factory.config.PlaceholderConfigurerSupport">
-        <property name="location" value="classpath:testPlaceholder2.properties"/>
-    </bean>
+    <context:component-scan base-package="sillybaka.springframework.beans.factory.annotation"></context:component-scan>
 
-    <bean id="carRoll" class="sillybaka.springframework.entity.CarRoll">
-        <property name="brand" value="${niubi}"/>
+    <bean id="valueEntity2" class="sillybaka.springframework.beans.factory.annotation.ValueEntity">
+        <property name="testDouble" value="777"/>
+        <property name="testString" value="niushagntian"/>
     </bean>
 </beans>

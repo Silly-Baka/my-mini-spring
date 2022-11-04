@@ -31,12 +31,12 @@ public class PropertiesLoaderSupport {
     }
 
     /**
-     * 从上下文中加载所有的properties
+     * 从上下文中加载所有的properties 并返回一个合并的集合
      * @return 上下文中所有properties的集合
      */
-    protected Properties loadProperties() throws NestedIOException {
+    protected Properties mergeProperties() throws NestedIOException {
 
-        Properties properties = new Properties();
+        Properties merge = new Properties();
 
         // 如果没有指定的路径 则自动扫描
         if(this.locations == null){
@@ -46,13 +46,16 @@ public class PropertiesLoaderSupport {
         for (String location : this.locations) {
             Resource resource = resourceLoader.getResource(location);
             try {
+                Properties properties = new Properties();
                 properties.load(resource.getInputStream());
+
+                merge.putAll(properties);
             } catch (IOException e) {
                 throw new NestedIOException("load properties [" + resource.getFileName() + "] error");
             }
         }
 
-        return properties;
+        return merge;
     }
 
     /**

@@ -1,6 +1,8 @@
 package sillybaka.springframework.beans.factory.support;
 
+import sillybaka.springframework.beans.factory.ApplicationContextAware;
 import sillybaka.springframework.beans.factory.config.BeanPostProcessor;
+import sillybaka.springframework.context.ApplicationContext;
 import sillybaka.springframework.context.ApplicationListener;
 import sillybaka.springframework.context.ConfigurableApplicationContext;
 
@@ -12,11 +14,9 @@ import sillybaka.springframework.context.ConfigurableApplicationContext;
  *
  * @Author SillyBaka
  **/
-public class ApplicationListenerDetector extends ApplicationContextAwareProcessor implements BeanPostProcessor {
+public class ApplicationListenerDetector implements BeanPostProcessor, ApplicationContextAware {
 
-    public ApplicationListenerDetector(ConfigurableApplicationContext applicationContext) {
-        super(applicationContext);
-    }
+    private ConfigurableApplicationContext applicationContext;
 
     @Override
     public <T> T postProcessAfterInitialization(T bean, String beanName) {
@@ -26,5 +26,10 @@ public class ApplicationListenerDetector extends ApplicationContextAwareProcesso
             applicationContext.addApplicationListener((ApplicationListener<?>) bean);
         }
         return bean;
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) {
+        this.applicationContext = (ConfigurableApplicationContext) applicationContext;
     }
 }

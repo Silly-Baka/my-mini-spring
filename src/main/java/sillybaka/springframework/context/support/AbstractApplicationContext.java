@@ -3,9 +3,10 @@ package sillybaka.springframework.context.support;
 import sillybaka.springframework.aop.framework.autoproxy.AbstractAdvisorAutoProxyCreator;
 import sillybaka.springframework.beans.factory.ApplicationContextAware;
 import sillybaka.springframework.beans.factory.ConfigurableListableBeanFactory;
+import sillybaka.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor;
 import sillybaka.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import sillybaka.springframework.beans.factory.config.BeanPostProcessor;
-import sillybaka.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
+import sillybaka.springframework.beans.factory.config.PlaceholderConfigurerSupport;
 import sillybaka.springframework.beans.factory.support.ApplicationContextAwareProcessor;
 import sillybaka.springframework.beans.factory.support.ApplicationListenerDetector;
 import sillybaka.springframework.context.ApplicationEvent;
@@ -48,6 +49,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
 
         // 在实例化bean之前调用beanFactoryPostProcessor 看是否需要修改beanDefinition
         //todo 问题：BeanFactoryPostProcessor在哪里开始注册进IOC容器
+        //          在prepareBeanFactory中 注册了BeanPostProcessor和BeanFactoryPostProcessor
         invokeBeanFactoryPostProcessors(beanFactory);
 
         // 注册BeanPostProcessors进当前内置的BeanFactory
@@ -68,16 +70,21 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
     }
 
     /**
-     * 为指定的BeanFactory填充特殊属性，一般用于初始化内置BeanFactory
+     * 为指定的BeanFactory填充特殊属性，一般用于为BeanFactory初始化后置处理器
      */
     protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 
+        // 添加处理上下文感知的后置处理器
         beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
-        beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
+        // 添加处理bean定义中占位符的处理器
+        beanFactory.addBeanFactoryPostProcessor(new PlaceholderConfigurerSupport(this));
+        // 添加事件探测器
+        beanFactory.addBeanPostProcessor(new ApplicationListenerDetector());
         // 添加AOP自动创建代理对象用的实例化处理器
         beanFactory.addBeanPostProcessor(new AbstractAdvisorAutoProxyCreator(beanFactory));
+        // 添加处理@Value和@Autowired的后置处理器
+        beanFactory.addBeanPostProcessor(new AutowiredAnnotationBeanPostProcessor(beanFactory));
 
-        beanFactory.addBeanFactoryPostProcessor(new PropertyPlaceholderConfigurer(this));
 
     }
 
@@ -139,9 +146,6 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
                 beanFactory.addBeanPostProcessor((BeanPostProcessor) bean);
             }else {
                 throw new BeansException("the bean name with: ["+postProcessorName+"] is not a BeanPostProcessor");
-            }
-            if(bean instanceof ApplicationContextAware){
-                ((ApplicationContextAware) bean).setApplicationContext(this);
             }
         }
     }

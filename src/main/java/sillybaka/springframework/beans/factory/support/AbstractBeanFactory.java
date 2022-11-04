@@ -7,7 +7,9 @@ import sillybaka.springframework.beans.factory.config.BeanDefinition;
 import sillybaka.springframework.beans.factory.ConfigurableBeanFactory;
 import sillybaka.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import sillybaka.springframework.beans.factory.config.BeanPostProcessor;
+import sillybaka.springframework.beans.factory.config.InstantiationAwareBeanPostProcessor;
 import sillybaka.springframework.exception.BeansException;
+import sillybaka.springframework.utils.StringValueResolver;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +28,9 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
     private final List<BeanFactoryPostProcessor> beanFactoryPostProcessors = new ArrayList<>();
 
+    private final List<StringValueResolver> embeddedStringResolvers = new ArrayList<>();
+
+    private List<InstantiationAwareBeanPostProcessor> instantiationAwareBeanPostProcessorCache;
 
     @Override
     public Object getBean(String beanName) {
@@ -88,7 +93,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
      * 创建名为beanName的Bean实例
      * 创建策略由实现类决定
      */
-    protected abstract <T> T createBean(String beanName,BeanDefinition<T> beanDefinition);
+    protected abstract Object createBean(String beanName,BeanDefinition<?> beanDefinition);
 
     /**
      * 根据beanName获取它的bean定义
@@ -152,5 +157,42 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
         }
 
         return instance;
+    }
+
+    @Override
+    public void addEmbeddedValueResolver(StringValueResolver valueResolver) {
+        embeddedStringResolvers.add(valueResolver);
+    }
+
+    @Override
+    public StringValueResolver[] getEmbeddedValueResolvers() {
+        return embeddedStringResolvers.toArray(new StringValueResolver[0]);
+    }
+
+    /**
+     * 检查当前BeanFactory中是否有注册InstantiationAwareBeanPostProcess
+     * @return
+     */
+    protected boolean hasInstantiationAwareBeanPostProcessors(){
+        // cache为空 重新获取
+        if(instantiationAwareBeanPostProcessorCache == null){
+            getBeanPostProcessorsCache();
+        }
+        return !this.instantiationAwareBeanPostProcessorCache.isEmpty();
+    }
+
+    protected void getBeanPostProcessorsCache(){
+
+        this.instantiationAwareBeanPostProcessorCache = new ArrayList<>();
+        for (BeanPostProcessor beanPostProcessor : this.beanPostProcessors) {
+            if(beanPostProcessor instanceof InstantiationAwareBeanPostProcessor){
+                this.instantiationAwareBeanPostProcessorCache.add((InstantiationAwareBeanPostProcessor) beanPostProcessor);
+            }
+        }
+
+    }
+
+    public List<InstantiationAwareBeanPostProcessor> getInstantiationAwareBeanPostProcessorCache() {
+        return instantiationAwareBeanPostProcessorCache;
     }
 }

@@ -3,6 +3,7 @@ package sillybaka.springframework.beans.factory;
 import sillybaka.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import sillybaka.springframework.beans.factory.config.BeanPostProcessor;
 import sillybaka.springframework.beans.factory.support.SingletonBeanRegistry;
+import sillybaka.springframework.utils.StringValueResolver;
 
 import java.util.List;
 
@@ -65,4 +66,14 @@ public interface ConfigurableBeanFactory extends BeanFactory, SingletonBeanRegis
      */
     void destroySingleton(String beanName);
 
+    /**
+     * 往当前BeanFactory中添加指定的嵌入式字符串处理器
+     * @param valueResolver 字符串处理器
+     */
+    void addEmbeddedValueResolver(StringValueResolver valueResolver);
+
+    /**
+     * 获取当前BeanFactory中所有嵌入式字符串处理器
+     */
+    StringValueResolver[] getEmbeddedValueResolvers();
 }

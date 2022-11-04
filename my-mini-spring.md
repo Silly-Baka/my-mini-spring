@@ -667,21 +667,21 @@ public void destroy() {
 >    ```java
 >    // 销毁指定的单例bean
 >    public void destroySingleton(String beanName) {
->                                                  
+>                                                           
 >        // 删除缓存中的bean
 >        removeSingleton(beanName);
->                                              
+>                                                       
 >        DisposableBean disposableBean;
->                                                  
+>                                                           
 >        // 从特殊的注册表中取出该bean对应的DisposableAdapter
 >        synchronized (this.disposableBeans) {
 >            disposableBean = (DisposableBean) this.disposableBeans.remove(beanName);
 >        }
->                                                  
+>                                                           
 >       	// 实际destroy逻辑
 >        destroyBean(beanName, disposableBean);
 >    }
->                                              
+>                                                       
 >    // 销毁所有的单例bean
 >    public void destroySingletons() {
 >        if (logger.isTraceEnabled()) {
@@ -690,7 +690,7 @@ public void destroy() {
 >        synchronized (this.singletonObjects) {
 >            this.singletonsCurrentlyInDestruction = true;
 >        }
->                                              
+>                                                       
 >        String[] disposableBeanNames;
 >        synchronized (this.disposableBeans) {
 >            disposableBeanNames = StringUtils.toStringArray(this.disposableBeans.keySet());
@@ -700,18 +700,18 @@ public void destroy() {
 >            // 再一个个处理删除单个的逻辑
 >            destroySingleton(disposableBeanNames[i]);
 >        }
->                                              
+>                                                       
 >      	// 清除所有的缓存
 >        this.containedBeanMap.clear();
 >        this.dependentBeanMap.clear();
 >        this.dependenciesForBeanMap.clear();
->                                              
+>                                                       
 >        clearSingletonCache();
 >    }
->                                              
+>                                                       
 >    // 销毁一个bean的实际逻辑
 >    protected void destroyBean(String beanName, @Nullable DisposableBean bean) {
->                                              
+>                                                       
 >        Set<String> dependencies;
 >        synchronized (this.dependentBeanMap) {
 >            dependencies = this.dependentBeanMap.remove(beanName);
@@ -725,7 +725,7 @@ public void destroy() {
 >                destroySingleton(dependentBeanName);
 >            }
 >        }
->                                              
+>                                                       
 >        if (bean != null) {
 >            try {
 >                // 真正执行当前bean的自定义destroy方法
@@ -1908,8 +1908,6 @@ public class TestAutoProxy {
 >
 > 今天就来分析它的源码以及具体实现流程。这里先实现简单的`properties+占位符`替换，后面实现使用`注解@Values`注入
 
-
-
 ### **1.1 PropertiesResourceConfigurer实现**
 
 **`分析源码`**
@@ -2145,13 +2143,14 @@ public class testPlaceholder {
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
                            http://www.springframework.org/schema/context  http://www.springframework.org/schema/context/spring-context.xsd">
 
-    <bean id="placeholderPostProcessor" class="sillybaka.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
-        <property name="location" value="classpath:testPlaceholder2.properties"/>
-    </bean>
+   <bean id="placeholderPostProcessor"
+         class="sillybaka.springframework.beans.factory.config.PlaceholderConfigurerSupport">
+      <property name="location" value="classpath:testPlaceholder2.properties"/>
+   </bean>
 
-    <bean id="carRoll" class="sillybaka.springframework.entity.CarRoll">
-        <property name="brand" value="${niubi}"/>
-    </bean>
+   <bean id="carRoll" class="sillybaka.springframework.entity.CarRoll">
+      <property name="brand" value="${niubi}"/>
+   </bean>
 </beans>
 ```
 
@@ -2159,6 +2158,8 @@ public class testPlaceholder {
 
 ## 2、包扫描（Component-Scan）
 
+> ### `Component-Scan介绍`
+>
 > Spring中提供了一个`自动扫描指定包下所有Bean组件（即带有@Component、@Controller、@Service 等接口的类）`的功能 ———— **`Component-Scan`**。 这个功能能够**`允许自动扫描Bean，减少我们在XML文件中诸如定义Bean之类的大量且频繁的操作。`**
 >
 > **`那么它的底层实现逻辑是什么样的呢？`**
@@ -2167,11 +2168,213 @@ public class testPlaceholder {
 
 
 
-## 3、@Value注解
+### 调用时机
+
+`既然Component-Scan是用于避免在XML文件中定义大量的Bean，那么Component-Scan应当也是用于扫描bean定义`
+
+**`所以应当在扫描XML文件中bean定义的同时 扫描指定包下的所有@Component bean`**
+
+### 代码实现
+
+```java
+/**
+ * 提供了从指定basePackage中读取所有候选Component组件（即带有@Component或其子注解的类）的基本实现
+ * <p>Date: 2022/11/3
+ * <p>Time: 21:09
+ *
+ * @Author SillyBaka
+ **/
+public class ClassPathScanningCandidateComponentProvider {
+
+    /**
+     * 从指定的包读取所有候选components的bean定义
+     * @param basePackage 指定的包
+     * @return 指定包下所有Component的bean定义
+     */
+    protected Set<BeanDefinition<?>> scanCandidateComponents(String basePackage){
+        Set<Class<?>> classSet = ClassUtil.scanPackageByAnnotation(basePackage, Component.class);
+        Set<BeanDefinition<?>> beanDefinitionSet = new HashSet<>();
+        for (Class<?> clazz : classSet) {
+            beanDefinitionSet.add(parseClassToBeanDefinition(clazz));
+        }
+        return beanDefinitionSet;
+    }
+
+    /**
+     * 将指定类转换成相应的BeanDefinition
+     * @param clazz 指定类
+     */
+    protected BeanDefinition<?> parseClassToBeanDefinition(Class clazz){
+        BeanDefinition<?> beanDefinition = new BeanDefinition<>();
+        beanDefinition.setType(clazz);
+
+        // 还要将该bean的所有属性注册进IOC容器
+        PropertyUtils.addAllPropertyDescriptor(clazz);
+
+        return beanDefinition;
+    }
+}
+
+/**
+ * 扫描器，用于获取指定包内所有加了特定注解的Bean定义，并将其包装成一个完整的Bean定义
+ * <p>Date: 2022/11/3
+ * <p>Time: 21:08
+ *
+ * @Author SillyBaka
+ **/
+public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateComponentProvider{
+
+    public Set<BeanDefinition<?>> doScan(String[] basePackages){
+
+        Set<BeanDefinition<?>> beanDefinitionSet = new HashSet<>();
+        for (String basePackage : basePackages) {
+            for (BeanDefinition<?> candidate : scanCandidateComponents(basePackage)) {
+                String scope = resolveBeanScope(candidate);
+                if(StrUtil.isNotBlank(scope)){
+                    candidate.setScope(scope);
+                }
+                beanDefinitionSet.add(candidate);
+            }
+        }
+
+        return beanDefinitionSet;
+    }
+
+    public String resolveBeanScope(BeanDefinition<?> beanDefinition){
+        Class<?> clazz = beanDefinition.getType();
+        Scope scope = clazz.getAnnotation(Scope.class);
+        if(scope != null){
+            return scope.value();
+        }
+        // 默认单例
+        return "singleton";
+    }
+
+    public String determineBeanName(BeanDefinition<?> beanDefinition){
+        Class<?> clazz = beanDefinition.getType();
+        Component annotation = clazz.getAnnotation(Component.class);
+        String value = annotation.value();
+        if(StrUtil.isNotBlank(value)){
+            return value;
+        }
+        // 默认beanName为 类名首字母小写
+        return StrUtil.lowerFirst(clazz.getSimpleName());
+    }
+}
+```
 
 
 
-## 4、@Autowired注解
+## 3、@Value注解（属性注入）
+
+> ### `@Value注解介绍`
+>
+> **在Spring中，@Value注解一般用于对Bean注入外部化的属性（从配置文件中读取）**
+>
+> `Spring的@Value注解定义`
+>
+> ![image-20221104110533233](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221104110533233.png)
+>
+> `Spring中@Value注解的多种用法`
+>
+> 1. `@Value("propertyValue")`    直接将**propertyValue**注入给当前属性
+> 2. `@Value("${propertyName}")`  从**Properties文件中读取**属性名为propertyName的属性值，并注入给当前属性
+> 3. `@Value("#{spEL表达式}")`     `解析spEL表达式`，根据表达式运算后的属性来注入属性
+>
+> **这里我们只实现前面两种**
+
+### `调用时机`
+
+**在Spring中，使用@Value注解标注的属性通常优先级更高，即比在XML文件中的Bean定义优先级更高，所以实现时要`考虑注解中的属性覆盖Bean定义中的同名属性`**
+
+**所以调用的时机应该`在Bean实例化之后（之前都行），在为Bean自动装配属性之前`**  `--- 参考源码AbstractAutowireCapableBeanFactory#populateBean(String beanName, RootBeanDefinition mbd, @Nullable BeanWrapper bw)`
+
+**流程图**
+
+![image-20221104205816371](https://raw.githubusercontent.com/Silly-Baka/my-pics/main/img/image-20221104205816371.png)
+
+### 代码实现
+
+```java
+/**
+ * 用于在Bean实例化之后装配属性之前，自动解析注解@Autowired和@Value的BeanPostProcessor
+ * <p>Date: 2022/11/4
+ * <p>Time: 16:13
+ *
+ * @Author SillyBaka
+ **/
+public class AutowiredAnnotationBeanPostProcessor implements BeanPostProcessor, InstantiationAwareBeanPostProcessor, BeanFactoryAware {
+
+    private ConfigurableListableBeanFactory beanFactory;
+
+    public AutowiredAnnotationBeanPostProcessor(ConfigurableListableBeanFactory beanFactory) {
+        this.beanFactory = beanFactory;
+    }
+
+    /**
+     * 在Bean实例化之后，自动装配属性之前调用，用于修改@Value注解定义的属性
+     * @param pvs 属性列表
+     * @param bean bean实例
+     * @param beanName bean名字
+     */
+    @Override
+    public PropertyValues postProcessPropertyValues(PropertyValues pvs, Object bean, String beanName) {
+        Class<?> beanClass = bean.getClass();
+
+        StringValueResolver[] embeddedValueResolvers = beanFactory.getEmbeddedValueResolvers();
+
+        List<PropertyValue> propertyValueList = pvs.getPropertyValueList();
+
+        // 处理字段上的@Value注解
+        for (Field field : beanClass.getDeclaredFields()) {
+            Value value = field.getAnnotation(Value.class);
+            String fieldName = field.getName();
+
+            if(value != null){
+                String propertyValue = value.value();
+                // 解析字符串里的占位符
+                for (StringValueResolver embeddedValueResolver : embeddedValueResolvers) {
+                    propertyValue = embeddedValueResolver.resolveStringValue(propertyValue);
+                }
+                // 如果解析完不为空 则注入bean的属性中 替换掉Bean定义中的同名属性 或直接放入
+                if(StrUtil.isNotBlank(propertyValue)){
+//                    BeanUtil.setFieldValue(bean,field.getName(),propertyValue);
+                    int length = propertyValueList.size();
+
+                    boolean hasSame = false;
+                    // 查找pvs中的同名属性，将其替换 防止冲突
+                    for (int i = 0; i < length; i++) {
+                        PropertyValue pv = propertyValueList.get(i);
+                        if(pv.getPropertyName().equals(fieldName)){
+                            pv.setPropertyValue(propertyValue);
+
+                            propertyValueList.set(i,pv);
+
+                            hasSame = true;
+                            break;
+                        }
+                    }
+                    // 若没有同名属性，则直接放入
+                    if(!hasSame){
+                        propertyValueList.add(new PropertyValue(fieldName,propertyValue));
+                    }
+                }
+            }
+        }
+
+        return pvs;
+    }
+
+    @Override
+    public void setBeanFactory(BeanFactory beanFactory) {
+        this.beanFactory = (ConfigurableListableBeanFactory) beanFactory;
+    }
+}
+```
+
+
+
+## 4、@Autowired注解（依赖注入）
 
 
 
@@ -2181,7 +2384,7 @@ public class testPlaceholder {
 
 ## ==Spring中循环依赖的解决方案==
 
-## 
+
 
 
 

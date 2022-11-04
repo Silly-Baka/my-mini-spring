@@ -2,7 +2,6 @@ package sillybaka.springframework.beans.factory.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.NestedIOException;
-import sillybaka.springframework.beans.factory.ConfigurableBeanFactory;
 import sillybaka.springframework.beans.factory.ConfigurableListableBeanFactory;
 
 import java.util.Properties;
@@ -27,7 +26,8 @@ public abstract class PropertyResourceConfigurer extends PropertiesLoaderSupport
         // 1、读取上下文的property
         Properties props = null;
         try {
-            props = loadProperties();
+            props = mergeProperties();
+
         } catch (NestedIOException e) {
             log.error("加载上下文配置文件时出错",e);
         }

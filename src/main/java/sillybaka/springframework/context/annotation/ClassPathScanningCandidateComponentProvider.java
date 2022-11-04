@@ -3,7 +3,9 @@ package sillybaka.springframework.context.annotation;
 import cn.hutool.core.util.ClassUtil;
 import sillybaka.springframework.beans.factory.config.BeanDefinition;
 import sillybaka.springframework.context.stereotype.Component;
+import sillybaka.springframework.utils.PropertyUtils;
 
+import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -37,6 +39,9 @@ public class ClassPathScanningCandidateComponentProvider {
     protected BeanDefinition<?> parseClassToBeanDefinition(Class clazz){
         BeanDefinition<?> beanDefinition = new BeanDefinition<>();
         beanDefinition.setType(clazz);
+
+        // 还要将该bean的所有属性注册进IOC容器
+        PropertyUtils.addAllPropertyDescriptor(clazz);
 
         return beanDefinition;
     }

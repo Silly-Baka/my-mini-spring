@@ -14,7 +14,8 @@ import java.util.List;
  **/
 @Slf4j
 public class PropertyValues {
-    private final List<PropertyValue> propertyValueList = new ArrayList<>();
+
+    private List<PropertyValue> propertyValueList = new ArrayList<>();
 
     public void addPropertyValue(PropertyValue pv){
         if(pv == null){
@@ -29,6 +30,14 @@ public class PropertyValues {
         }
         // 否则就添加
         propertyValueList.add(pv);
+    }
+
+    public void setPropertyValueList(List<PropertyValue> propertyValueList) {
+        this.propertyValueList = propertyValueList;
+    }
+
+    public List<PropertyValue> getPropertyValueList() {
+        return propertyValueList;
     }
 
     public PropertyValue[] getPropertyValues(){

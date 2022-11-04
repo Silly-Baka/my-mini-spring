@@ -3,6 +3,7 @@ package sillybaka.springframework.beans.factory.config;
 import sillybaka.springframework.beans.factory.ApplicationContextAware;
 import sillybaka.springframework.beans.factory.ConfigurableListableBeanFactory;
 import sillybaka.springframework.context.ApplicationContext;
+import sillybaka.springframework.utils.PlaceholderResolvingStringValueResolver;
 
 import java.util.Properties;
 
@@ -13,24 +14,16 @@ import java.util.Properties;
  *
  * @Author SillyBaka
  **/
-public class PropertyPlaceholderConfigurer extends PropertyResourceConfigurer implements ApplicationContextAware {
-
-    private static final String PLACEHOLDER_PREFIX = "${";
-    private static final String PLACEHOLDER_SUFFIX = "}";
+public class PlaceholderConfigurerSupport extends PropertyResourceConfigurer implements ApplicationContextAware {
 
     private ApplicationContext applicationContext;
 
-    // 测试用
-    private String location;
+    private PlaceholderResolvingStringValueResolver placeholderResolver;
 
-    public PropertyPlaceholderConfigurer(){}
-    public PropertyPlaceholderConfigurer(ApplicationContext applicationContext){
+    public PlaceholderConfigurerSupport(){}
+
+    public PlaceholderConfigurerSupport(ApplicationContext applicationContext){
         setApplicationContext(applicationContext);
-    }
-
-    public PropertyPlaceholderConfigurer(ApplicationContext applicationContext,String...locations){
-        this(applicationContext);
-        setLocations(locations);
     }
 
     /**
@@ -40,6 +33,11 @@ public class PropertyPlaceholderConfigurer extends PropertyResourceConfigurer im
      */
     @Override
     protected void processProperties(ConfigurableListableBeanFactory beanFactory, Properties props) {
+
+        // 创建新的占位符解析器 并注入容器
+        placeholderResolver = new PlaceholderResolvingStringValueResolver(props);
+        beanFactory.addEmbeddedValueResolver(placeholderResolver);
+
         for (String beanDefinitionName : beanFactory.getBeanDefinitionNames()) {
             BeanDefinition<?> beanDefinition = beanFactory.getBeanDefinitionByName(beanDefinitionName);
             resolvePropertyValues(beanDefinition,props);
@@ -61,14 +59,9 @@ public class PropertyPlaceholderConfigurer extends PropertyResourceConfigurer im
             Object originValue = pv.getPropertyValue();
             if(originValue instanceof String){
                 String propertyValue = (String) originValue;
-                // 如果属性值是占位符 则替换
-                if(propertyValue.startsWith(PLACEHOLDER_PREFIX) && propertyValue.endsWith(PLACEHOLDER_SUFFIX)){
-                    int length = propertyValue.length();
-                    propertyValue = propertyValue.substring(PLACEHOLDER_PREFIX.length(),length-PLACEHOLDER_SUFFIX.length());
+                // 解析占位符并替换为属性
+                propertyValue = this.placeholderResolver.resolveStringValue(propertyValue);
 
-                    // 作为key从props中获取属性
-                    propertyValue = props.getProperty(propertyValue);
-                }
                 propertyValues.addPropertyValue(new PropertyValue(pv.getPropertyName(),propertyValue));
             }
         }
@@ -81,12 +74,4 @@ public class PropertyPlaceholderConfigurer extends PropertyResourceConfigurer im
         setResourceLoader(applicationContext);
     }
 
-    public void setLocation(String location) {
-        this.location = location;
-        super.setLocations(location);
-    }
-
-    public String getLocation() {
-        return location;
-    }
 }
